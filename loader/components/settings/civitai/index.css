@@ -1,0 +1,107 @@
+/* Civitai API key setting.
+   Plain CSS on purpose: this plugin ships a prebuilt static/css/index.css and has no
+   LESS toolchain in the installed tree, so a .less file here would never be compiled.
+   Tokens are copied verbatim from loader/components/settings/language/index.less so the
+   block reads as one more setting row and not a bolt-on. */
+.setting_items.civitai_setting .civitai_shell {
+  display: flex;
+  align-items: center;
+  gap: 0.5vw;
+  width: 26vw;
+  margin-top: 0.7vw;
+  padding: 0.3vw;
+  background: #262626;
+  border: 1px solid #3d3d3d;
+  border-radius: 0.5vw;
+  transition: border-color 0.2s;
+}
+.setting_items.civitai_setting .civitai_shell:focus-within {
+  border-color: #ffc300;
+}
+.setting_items.civitai_setting .civitai_shell input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5vw 0.8vw;
+  border: 0;
+  border-radius: 0.4vw;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: bold;
+}
+.setting_items.civitai_setting .civitai_shell input:focus {
+  outline: none;
+}
+.setting_items.civitai_setting .civitai_shell input::-webkit-input-placeholder {
+  color: #808080;
+  font-weight: normal;
+}
+.setting_items.civitai_setting .civitai_eye {
+  padding: 0.5vw 0.8vw;
+  border-radius: 0.4vw;
+  color: #808080;
+  font-weight: bold;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.setting_items.civitai_setting .civitai_eye:hover {
+  background: #383838;
+  color: #ffffff;
+}
+.setting_items.civitai_setting .civitai_actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5vw;
+  width: fit-content;
+  margin-top: 0.5vw;
+  padding: 0.3vw;
+  background: #262626;
+  border: 1px solid #3d3d3d;
+  border-radius: 0.5vw;
+}
+.setting_items.civitai_setting .civitai_actions button {
+  padding: 0.5vw 0.8vw;
+  border: 0;
+  border-radius: 0.4vw;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: bold;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.setting_items.civitai_setting .civitai_actions button:hover {
+  background: #383838;
+}
+.setting_items.civitai_setting .civitai_actions button.primary {
+  background: #ffc300;
+  color: #1a1a1a;
+}
+.setting_items.civitai_setting .civitai_actions button.primary:hover {
+  background: #ffd24d;
+}
+.setting_items.civitai_setting .civitai_status {
+  display: flex;
+  align-items: center;
+  gap: 0.4vw;
+  margin-top: 0.6vw;
+  color: #808080;
+  font-size: 0.9rem;
+}
+.setting_items.civitai_setting .civitai_status::before {
+  content: "";
+  width: 0.4vw;
+  height: 0.4vw;
+  min-width: 5px;
+  min-height: 5px;
+  border-radius: 50%;
+  background: #555555;
+}
+.setting_items.civitai_setting .civitai_status.is_set {
+  color: #ffc300;
+}
+.setting_items.civitai_setting .civitai_status.is_set::before {
+  background: #ffc300;
+}

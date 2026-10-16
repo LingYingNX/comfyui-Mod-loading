@@ -10,7 +10,6 @@ export default {
   data() {
     return {
       list: [],
-      isExpand: false,
       tags: [],
       selectedList: [],
     };
@@ -93,18 +92,13 @@ export default {
     handleSelectStart() {
       return false;
     },
-    // Expand tag list
-    expandClassify() {
-      this.isExpand = !this.isExpand;
-    },
   },
-  template: `<div ref="classification" class="classification" :class="{classification_expand:isExpand}">
+  template: `<div ref="classification" class="classification">
                 <div class="item all" :class="{selected_classify: selectedList.length === 0}" @click="selectAll">ALL</div>
                 <div class="block"></div>
                 <div v-for="(item,index) in list" :key="index" ref="item" class="item" :class="{selected_classify: selectedList.includes(index)}" @click="selectClassify($event, index)" @contextmenu.prevent="handleContextMenu($event, index)" @selectstart.prevent="handleSelectStart" >
                   {{item.name}}
                 </div>
-                <div class="expand_icon" :class="{rotate_em:isExpand}" @click="expandClassify"><em class="iconfont icon-double-arrow-bottom"></em></div>
             </div>
 `,
 };

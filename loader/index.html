@@ -5,6 +5,16 @@
     <title>Loader</title>
     <link rel="stylesheet" href="./static/css/index.css" />
     <link rel="stylesheet" href="./static/css/iconfont.css" />
+    <link rel="stylesheet" href="./components/settings/civitai/index.css" />
+    <!-- V2 覆盖层：必须排在 static/css/index.css 之后，靠后者优先级覆盖旧产物 -->
+    <link rel="stylesheet" href="./static/css/studio2-tokens.css" />
+    <link rel="stylesheet" href="./pages/home/studio2.css" />
+    <link rel="stylesheet" href="./components/home/head/studio2.css" />
+    <link rel="stylesheet" href="./components/home/model/list/studio2.css" />
+    <link rel="stylesheet" href="./components/home/model/detail/studio2.css" />
+    <link rel="stylesheet" href="./components/home/model/detail/prompt/index.css" />
+    <link rel="stylesheet" href="./components/public/contextMenu.css" />
+    <link rel="stylesheet" href="./components/public/downloadModal.css" />
     <script src="./static/js/vue.js"></script>
     <script src="./static/js/vuex.js"></script>
     <script src="./static/js/vue-router.js"></script>
@@ -22,6 +32,8 @@
       import store from "./store/index.js";
       import "./static/js/message.js";
       import "./static/js/confirm.js";
+      // 右键菜单：模块顶层就把 Vue.prototype.$contextMenu 挂上（必须在 new Vue 之前）
+      import "./components/public/contextMenu.js";
       let waitForParent = async () => {
         while (window.parent?.graph === undefined || window.parent?.graph === null) {
           await new Promise(resolve => setTimeout(resolve, 100));

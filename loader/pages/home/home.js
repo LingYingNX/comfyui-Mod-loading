@@ -19,6 +19,8 @@ export default {
         sort: "",
         level: "",
         tags: [],
+        // 架构筛选（顶栏下拉写入，model 组件按它过滤）
+        arch: "",
       },
       isLoading: true,
       column: 0,
@@ -50,6 +52,9 @@ export default {
     this.$i18n.locale = this.$store.state.config.language;
     this.$store.commit("config/updateShortcut", this.$store.state.config.shortcut);
     this.$store.commit("config/updateWindowing", this.$store.state.config.windowing);
+    // C站 Key 存在插件配置文件里，进 home 页先拉进内存，
+    // 之后 runFetch / downloadModal 提交的 api_key 才有值
+    this.$store.commit("config/loadCivitai");
     this.isLoading = false;
   },
   methods: {
@@ -59,6 +64,7 @@ export default {
     },
     // Change filtering criteria
     changeSearchParameter(value) {
+      // 展开合并：value 里带的键覆盖旧值，其余键保持（tags 由 Classification 整份给出）
       this.searchParameter = {
         ...this.searchParameter,
         ...value,
@@ -67,9 +73,9 @@ export default {
   },
   template: `<div v-if="!isLoading" class="home_page">
                <div class="content">
-                <Head :column-index="columnIndex" @changeSearchParameter="changeSearchParameter" @changeColumn="changeColumn" :all-list="allList" />
+                <Head :column-index="columnIndex" @changeSearchParameter="changeSearchParameter" @changeColumn="changeColumn" :all-list="allList" :arch="searchParameter.arch" />
                 <Classification @changeSearchParameter="changeSearchParameter" :all-list="allList" />
-                <Model :column="column" :all-list="allList" :selected-widget="selectedWidget" :search-parameter="searchParameter" />
+                <Model :column="column" :all-list="allList" :selected-widget="selectedWidget" :search-parameter="searchParameter" @changeSearchParameter="changeSearchParameter" />
               </div>
               <Foot :all-list="allList" v-show="rendering"/>
              </div>`,

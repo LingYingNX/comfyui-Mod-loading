@@ -1,0 +1,393 @@
+/*
+ * 提示词工作台（Prompt Studio）样式
+ *
+ * 契约：STUDIO-V2-SPEC.md 第 2 / 3 / 7.3 节
+ * 视觉基准：gemini-code-1791895693133.html 526-775 行（只读，未改动）
+ *
+ * 深度与旧产物 static/css/index.css 同级；本组件没有旧产物竞争，仍按同级深度写，
+ * 避免被 static/css/index.css 里的通用规则（button / input / textarea）压过去。
+ * 加载顺序由 loader/index.html 保证排在 static/css/index.css 之后。
+ *
+ * 尺寸换算（SPEC 第 3 节，2400px 窗口 / 18px 基准字号）：
+ *   长度 Xpx → X * 0.04167vw；字号 Xpx → X / 18 rem；圆角直接用 --s2-r-* token。
+ *   1px 描边同样按长度规则换算成 0.042vw（约等于 2400px 窗口下的 1px）。
+ * 颜色一律取 --s2-* token（static/css/studio2-tokens.css），不另造色。
+ */
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 内联 SVG 图标统一尺寸：12px → 0.5vw */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .s2-icon {
+  width: 0.5vw;
+  height: 0.5vw;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ── 顶部胶囊导航 ───────────────────────────────────────── */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .capsule-nav-container {
+  flex-shrink: 0;
+  padding: 0.5vw 0.583vw 0.333vw; /* 12px 14px 8px */
+  border-bottom: 0.042vw solid var(--s2-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.417vw; /* 10px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .capsule-group {
+  display: flex;
+  align-items: center;
+  gap: 0.333vw; /* 8px */
+  min-width: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .capsule-pill {
+  background: var(--s2-card-2);
+  border: 0.042vw solid var(--s2-line-2);
+  color: var(--s2-tx-2);
+  font-size: 0.8rem; /* 11px */
+  padding: 0.25vw 0.583vw; /* 6px 14px */
+  border-radius: 0.833vw; /* 20px */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25vw; /* 6px */
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* 悬浮：视觉基准 565 行的 #292932 */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .capsule-pill:hover {
+  background: #292932;
+  color: var(--s2-tx);
+}
+
+/* 激活态：文字与描边取 SPEC 第 2 节的 --s2-cyan；
+   底色直接搬视觉基准 570 行的 #102d29（深青底，比 token 的 cyan-glow 更暗），
+   这样「字 = --s2-cyan」依旧成立，不新造色号。 */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .capsule-pill.active {
+  background: #102d29;
+  border-color: var(--s2-cyan);
+  color: var(--s2-cyan);
+  font-weight: 600;
+  box-shadow: 0 0 0.417vw var(--s2-cyan-glow); /* 10px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .btn-create-custom {
+  background: transparent;
+  border: 0.042vw dashed var(--s2-cyan);
+  color: var(--s2-cyan);
+  font-size: 0.8rem; /* 11px */
+  padding: 0.208vw 0.417vw; /* 5px 10px */
+  border-radius: 0.667vw; /* 16px */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.167vw; /* 4px */
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .btn-create-custom:hover {
+  background: var(--s2-cyan-glow);
+}
+
+/* ── 纵向滚动列表（容器自身滚，不撑破右栏） ───────────── */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .cards-vertical-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 0.5vw 0.583vw; /* 12px 14px */
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5vw; /* 12px */
+}
+
+/* 滚动条：与旧产物同款（8px → 0.333vw） */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .cards-vertical-scroll::-webkit-scrollbar {
+  width: 0.333vw;
+  background: transparent;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .cards-vertical-scroll::-webkit-scrollbar-thumb:vertical {
+  border-radius: 0.833vw;
+  background: var(--s2-line-2);
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .cards-vertical-scroll::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .prompt-empty {
+  flex-shrink: 0;
+  padding: 0.833vw 0.583vw; /* 20px 14px */
+  font-size: 0.8rem; /* 11px */
+  line-height: 1.6;
+  color: var(--s2-tx-3);
+  text-align: center;
+}
+
+/* ── 单张套件卡片 ───────────────────────────────────────── */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .outfit-vcard {
+  flex-shrink: 0;
+  background: var(--s2-card-2);
+  border: 0.042vw solid var(--s2-line);
+  border-radius: var(--s2-r-md); /* 10px */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0.167vw 0.5vw rgba(0, 0, 0, 0.3); /* 0 4px 12px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .outfit-vcard-header {
+  padding: 0.333vw 0.5vw; /* 8px 12px */
+  background: var(--s2-card);
+  border-bottom: 0.042vw solid var(--s2-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.333vw; /* 8px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .outfit-vcard-title {
+  font-size: 0.8rem; /* 12px */
+  font-weight: 600;
+  color: var(--s2-tx);
+  display: flex;
+  align-items: center;
+  gap: 0.25vw; /* 6px */
+  min-width: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .outfit-vcard-title .outfit-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .outfit-vcard-title .set-tag-icon {
+  color: var(--s2-tx-3);
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .outfit-weight-chip {
+  font-size: 0.7rem; /* 10px */
+  background: rgba(0, 196, 180, 0.08);
+  color: var(--s2-cyan);
+  border: 0.042vw solid var(--s2-line-2);
+  padding: 0.042vw 0.208vw; /* 1px 5px */
+  border-radius: 0.125vw; /* 3px */
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .outfit-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25vw; /* 6px */
+  flex-shrink: 0;
+}
+
+/* 可编辑标题（自定义视图） */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .title-input-edit {
+  width: 5.833vw; /* 140px */
+  box-sizing: border-box;
+  background: var(--s2-inset);
+  border: 0.042vw solid var(--s2-line-2);
+  color: var(--s2-tx);
+  font-size: 0.8rem; /* 12px */
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0.083vw 0.25vw; /* 2px 6px */
+  border-radius: var(--s2-r-xs); /* 4px */
+  outline: none;
+  min-width: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .title-input-edit:focus {
+  border-color: var(--s2-cyan);
+}
+
+/* 一键复制按钮：渐变取自视觉基准 651-669 行（#059669 / #042520） */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .btn-copy-action {
+  background: linear-gradient(135deg, var(--s2-cyan) 0%, #059669 100%);
+  color: #042520;
+  font-size: 0.8rem; /* 11px */
+  font-weight: 700;
+  font-family: inherit;
+  border: none;
+  padding: 0.167vw 0.417vw; /* 4px 10px */
+  border-radius: 0.833vw; /* 20px */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.167vw; /* 4px */
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .btn-copy-action:hover {
+  transform: translateY(-0.042vw);
+  box-shadow: 0 0.125vw 0.417vw rgba(0, 196, 180, 0.4); /* 0 3px 10px */
+}
+
+/* 删除按钮（模板里的垃圾桶图标 → 内联 SVG） */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .btn-icon-danger {
+  background: transparent;
+  border: none;
+  color: var(--s2-tx-3);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .btn-icon-danger:hover {
+  color: var(--s2-lv-s); /* 与 S 级同色 #FF5733，不新造红 */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .btn-icon-danger .s2-icon {
+  width: 0.5vw; /* 12px */
+  height: 0.5vw;
+}
+
+/* ── 卡片内容区 ─────────────────────────────────────────── */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .outfit-vcard-body {
+  padding: 0.417vw; /* 10px */
+  display: flex;
+  flex-direction: column;
+  gap: 0.333vw; /* 8px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .tokens-tip {
+  font-size: 0.7rem; /* 10px */
+  color: var(--s2-tx-3);
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .tokens-tag-box {
+  background: var(--s2-inset);
+  border: 0.042vw solid var(--s2-line);
+  border-radius: var(--s2-r-sm); /* 6px */
+  padding: 0.333vw; /* 8px */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.167vw; /* 4px */
+  max-height: 3.333vw; /* 80px */
+  overflow-y: auto;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .token-chip {
+  background: var(--s2-card);
+  color: #2a82e4;
+  border: 0.042vw solid rgba(2, 132, 199, 0.2); /* 模板 #2a82e433 */
+  font-size: 0.7rem; /* 10px */
+  padding: 0.083vw 0.25vw; /* 2px 6px */
+  border-radius: 0.125vw; /* 3px */
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .token-chip:hover {
+  background: rgba(2, 132, 199, 0.16);
+  border-color: #2a82e4;
+  color: var(--s2-tx);
+}
+
+/* ── 折叠控件 ───────────────────────────────────────────── */
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .foldable-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.333vw; /* 8px */
+  cursor: pointer;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .triangle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.208vw; /* 5px */
+  font-size: 0.8rem; /* 11px */
+  color: var(--s2-tx-2);
+  font-weight: 500;
+  min-width: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .triangle-btn:hover {
+  color: var(--s2-tx);
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .triangle-icon {
+  color: var(--s2-cyan);
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .triangle-icon .s2-icon {
+  width: 0.5vw; /* 12px */
+  height: 0.333vw; /* 8px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .foldable-container.collapsed .triangle-icon {
+  transform: rotate(-90deg);
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .foldable-container.collapsed .foldable-content {
+  display: none;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .foldable-content {
+  margin-top: 0.25vw; /* 6px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .badge-protected {
+  font-size: 0.7rem; /* 9px */
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.09); /* 模板 #10b98118 */
+  border: 0.042vw solid rgba(5, 150, 105, 0.2); /* 模板 #05966933 */
+  padding: 0.042vw 0.208vw; /* 1px 5px */
+  border-radius: 0.083vw; /* 2px */
+  display: flex;
+  align-items: center;
+  gap: 0.125vw; /* 3px */
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .badge-protected .s2-icon {
+  width: 0.417vw; /* 10px */
+  height: 0.417vw;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .prompt-textarea-custom {
+  width: 100%;
+  box-sizing: border-box;
+  height: 2.667vw; /* 64px */
+  min-height: 2.667vw;
+  max-height: 11.111vw; /* 200px：拖大也不会撑破右栏 */
+  background: var(--s2-inset);
+  border: 0.042vw solid var(--s2-line-2);
+  border-radius: var(--s2-r-xs); /* 4px */
+  color: var(--s2-tx);
+  padding: 0.25vw 0.333vw; /* 6px 8px */
+  font-size: 0.8rem; /* 11px */
+  font-family: inherit;
+  line-height: 1.4;
+  resize: vertical;
+  outline: none;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .prompt-studio-wrapper .prompt-textarea-custom:focus {
+  border-color: var(--s2-cyan);
+}

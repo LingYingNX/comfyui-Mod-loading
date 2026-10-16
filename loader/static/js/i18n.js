@@ -94,10 +94,61 @@ const message = {
         renderAllThumbnails: "渲染并覆盖所有缩略图？",
         renderingAlert: "正在渲染缩略图，请稍后再试",
         closePageConfirm: "关闭窗口并终止正在执行的任务？",
+        archFilter: "架构",
+        archAll: "全部架构",
+        fetchText: "一键获取元数据",
+        fetchStart: "开始批量获取元数据？已上锁的模型与你自己写过的提示词会自动跳过。",
+        fetching: "正在获取元数据",
+        fetchProgress: ({ named }) => {
+          return `正在获取元数据 ${named("done")}/${named("total")}：${named("current")}`;
+        },
+        fetchDone: ({ named }) => {
+          return `获取完成：成功 ${named("ok")}，跳过 ${named("skipped")}，失败 ${named("failed")}`;
+        },
+      },
+      nav: {
+        all: "全部",
+        other: "其他",
+        tip: "按架构分类，点击三角展开文件夹",
       },
       model: {
         useModelConfirm: "设置模型将退出缩略图渲染,是否确定?",
         dirTagCantDelete: "文件夹标签不能删除",
+        lockOn: "点击上锁，一键获取时跳过",
+        lockOff: "已上锁，点击解锁",
+        lockFailed: "上锁状态保存失败",
+        newVersion: "新版",
+        updateTip: "检测到远端有新版本 {version}，点右键「仅更新当前模型元数据」获取",
+        downloadCard: "下载新模型",
+        downloadCardTip: "点击打开下载与元数据窗口",
+        openFolderFailed: "打开本地目录失败",
+        fetchFailed: "获取元数据失败",
+      },
+      contextMenu: {
+        openSite: "跳转到模型原网站",
+        openFolder: "打开本地存放目录",
+        toggleLock: "锁定 / 解锁元数据",
+        updateOne: "仅更新当前模型元数据",
+      },
+      download: {
+        title: "下载模型",
+        toCategory: ({ named }) => {
+          return `下载到「${named("category")}」分类目录`;
+        },
+        url: "模型链接 / Model ID / URL",
+        urlPlaceholder: "https://civitai.com/models/12345?modelVersionId=67890",
+        name: "名称",
+        namePlaceholder: "留空则用作者提供的标题",
+        autoName: "自动以作者标题命名，并下载所有多服装形态的提示词",
+        cancel: "取消",
+        confirm: "开始下载并获取元数据",
+        needUrl: "请填模型链接",
+        needName: "请填模型名称",
+        downloading: ({ named }) => {
+          return `下载中 ${named("percent")}%（${named("got")} / ${named("total")}）`;
+        },
+        done: "下载完成，已写入预览图与提示词",
+        failed: "下载失败",
       },
       foot: {
         text: ({ named }) => {
@@ -111,7 +162,7 @@ const message = {
             name: "工作流",
           },
           {
-            name: "笔记",
+            name: "提示词",
           },
           {
             name: "基本信息",
@@ -123,6 +174,8 @@ const message = {
           type: "文件类型",
           creationTime: "创建时间",
           modificationTime: "修改时间",
+          notImageFile: "请选择图片格式文件",
+          editName: "点击修改",
         },
         workflow: {
           importText: "导入",
@@ -170,6 +223,24 @@ const message = {
             placeholder: "请输入笔记名称(默认随机填充)",
           },
         },
+        prompt: {
+          authorTab: "作者预设",
+          customTab: "我的提示词",
+          authorTabCount: "作者服装预设",
+          customTabCount: "自定义提示词",
+          createSet: "新建预设",
+          copyOne: "一键复制",
+          copyDone: "已复制",
+          tokensTip: "作者提供触发词（点击单独复制）",
+          setTitle: "设置套件标题",
+          contentLabel: "自定义提示词内容",
+          protected: "防覆盖保护",
+          deleteSet: "删除此套件",
+          noAuthor: "该作者没有提供触发词，可切到「我的提示词」自己写",
+          noCustom: "还没有自定义提示词，点右上角「新建预设」添加",
+          placeholder: "输入提示词，一键获取元数据时会跳过这里的内容",
+          saveFailed: "提示词保存失败",
+        },
         useButtonText: "使用此模型",
       },
     },
@@ -204,6 +275,21 @@ const message = {
             value: "noFull",
           },
         ],
+      },
+      civitai: {
+        title: "C站 API",
+        describe: "设置 Civitai 的 API Key，用于读取 C站 模型元数据（保存在插件配置文件中）",
+        placeholder: "粘贴 C站 API Key",
+        saveText: "保存",
+        clearText: "清除",
+        openText: "获取 API Key",
+        showText: "显示",
+        hideText: "隐藏",
+        emptyStatus: "尚未设置 API Key",
+        setStatus: "已设置",
+        emptyInputTip: "请先粘贴 API Key",
+        savedTip: "已保存到插件配置文件",
+        clearedTip: "已清除",
       },
     },
     messages: {
@@ -314,10 +400,61 @@ const message = {
         renderAllThumbnails: "Render and overwrite all thumbnails?",
         renderingAlert: "Rendering thumbnails, please try again later",
         closePageConfirm: "Close the window and terminate the task?",
+        archFilter: "Architecture",
+        archAll: "All architectures",
+        fetchText: "Fetch metadata",
+        fetchStart: "Fetch metadata for all models? Locked models and your own prompts are skipped.",
+        fetching: "Fetching metadata",
+        fetchProgress: ({ named }) => {
+          return `Fetching metadata ${named("done")}/${named("total")}: ${named("current")}`;
+        },
+        fetchDone: ({ named }) => {
+          return `Done: ${named("ok")} ok, ${named("skipped")} skipped, ${named("failed")} failed`;
+        },
+      },
+      nav: {
+        all: "All",
+        other: "Other",
+        tip: "Grouped by architecture; click the arrow to expand folders",
       },
       model: {
         useModelConfirm: "Using model will exit the thumbnail rendering, are you sure?",
         dirTagCantDelete: "Folder tag cannot be deleted",
+        lockOn: "Click to lock, skipped when fetching metadata",
+        lockOff: "Locked, click to unlock",
+        lockFailed: "Failed to save lock state",
+        newVersion: "New",
+        updateTip: "A newer version {version} exists upstream. Right-click “Update this model's metadata only” to fetch it.",
+        downloadCard: "Download model",
+        downloadCardTip: "Open the download and metadata window",
+        openFolderFailed: "Failed to open the local folder",
+        fetchFailed: "Failed to fetch metadata",
+      },
+      contextMenu: {
+        openSite: "Open the original model page",
+        openFolder: "Open the local folder",
+        toggleLock: "Lock / unlock metadata",
+        updateOne: "Refresh this model's metadata only",
+      },
+      download: {
+        title: "Download model",
+        toCategory: ({ named }) => {
+          return `Download into the "${named("category")}" category`;
+        },
+        url: "Model link / Model ID / URL",
+        urlPlaceholder: "https://civitai.com/models/12345?modelVersionId=67890",
+        name: "Name",
+        namePlaceholder: "Leave empty to use the author's title",
+        autoName: "Name it after the author's title, and download all outfit prompts",
+        cancel: "Cancel",
+        confirm: "Download and fetch metadata",
+        needUrl: "Please enter a model link",
+        needName: "Please enter a model name",
+        downloading: ({ named }) => {
+          return `Downloading ${named("percent")}% (${named("got")} / ${named("total")})`;
+        },
+        done: "Download finished, preview and prompts written",
+        failed: "Download failed",
       },
       foot: {
         text: ({ named }) => {
@@ -331,7 +468,7 @@ const message = {
             name: "Workflow",
           },
           {
-            name: "Notes"
+            name: "Prompts"
           },
           {
             name: "Basic information",
@@ -343,6 +480,8 @@ const message = {
           type: "Type",
           creationTime: "Create time",
           modificationTime: "Modify time",
+          notImageFile: "Please choose an image file",
+          editName: "Click to edit",
         },
         workflow: {
           importText: "import",
@@ -390,6 +529,24 @@ const message = {
             placeholder: "Rand note name default",
           },
         },
+        prompt: {
+          authorTab: "Author presets",
+          customTab: "My prompts",
+          authorTabCount: "Author outfit presets",
+          customTabCount: "Custom prompts",
+          createSet: "New preset",
+          copyOne: "Copy",
+          copyDone: "Copied",
+          tokensTip: "Trigger words from the author (click one to copy)",
+          setTitle: "Set a preset title",
+          contentLabel: "Custom prompt content",
+          protected: "Overwrite protected",
+          deleteSet: "Delete this preset",
+          noAuthor: "The author provided no trigger words. Switch to \"My prompts\" to write your own.",
+          noCustom: "No custom prompts yet. Click \"New preset\" at the top right to add one.",
+          placeholder: "Type a prompt here. Fetching metadata skips whatever you write.",
+          saveFailed: "Failed to save prompts",
+        },
         useButtonText: "Use model",
       },
     },
@@ -424,6 +581,21 @@ const message = {
             value: "noFull",
           },
         ],
+      },
+      civitai: {
+        title: "Civitai API",
+        describe: "Set your Civitai API key to read model metadata from Civitai (stored in the plugin config file)",
+        placeholder: "Paste your Civitai API key",
+        saveText: "Save",
+        clearText: "Clear",
+        openText: "Get API key",
+        showText: "Show",
+        hideText: "Hide",
+        emptyStatus: "No API key set",
+        setStatus: "Saved",
+        emptyInputTip: "Paste an API key first",
+        savedTip: "Saved to the plugin config file",
+        clearedTip: "Cleared",
       },
     },
     messages: {
@@ -534,10 +706,61 @@ const message = {
         renderAllThumbnails: "渲染並覆蓋所有縮略圖？",
         renderingAlert: "正在渲染縮略圖，請稍後再試",
         closePageConfirm: "關閉窗口並終止正在執行的任務？",
+        archFilter: "架構",
+        archAll: "全部架構",
+        fetchText: "一鍵獲取元數據",
+        fetchStart: "開始批量獲取元數據？已上鎖的模型與你自己寫過的提示詞會自動跳過。",
+        fetching: "正在獲取元數據",
+        fetchProgress: ({ named }) => {
+          return `正在獲取元數據 ${named("done")}/${named("total")}：${named("current")}`;
+        },
+        fetchDone: ({ named }) => {
+          return `獲取完成：成功 ${named("ok")}，跳過 ${named("skipped")}，失敗 ${named("failed")}`;
+        },
+      },
+      nav: {
+        all: "全部",
+        other: "其他",
+        tip: "按架構分類，點擊三角展開資料夾",
       },
       model: {
         useModelConfirm: "使用模型將退出縮略圖渲染,是否確定?",
         dirTagCantDelete: "文件夾標簽不能刪除",
+        lockOn: "點擊上鎖，一鍵獲取時跳過",
+        lockOff: "已上鎖，點擊解鎖",
+        lockFailed: "上鎖狀態保存失敗",
+        newVersion: "新版",
+        updateTip: "檢測到遠端有新版本 {version}，點右鍵「僅更新當前模型元數據」獲取",
+        downloadCard: "下載新模型",
+        downloadCardTip: "點擊打開下載與元數據窗口",
+        openFolderFailed: "打開本地目錄失敗",
+        fetchFailed: "獲取元數據失敗",
+      },
+      contextMenu: {
+        openSite: "跳轉到模型原網站",
+        openFolder: "打開本地存放目錄",
+        toggleLock: "鎖定 / 解鎖元數據",
+        updateOne: "僅更新當前模型元數據",
+      },
+      download: {
+        title: "下載模型",
+        toCategory: ({ named }) => {
+          return `下載到「${named("category")}」分類目錄`;
+        },
+        url: "模型鏈接 / Model ID / URL",
+        urlPlaceholder: "https://civitai.com/models/12345?modelVersionId=67890",
+        name: "名稱",
+        namePlaceholder: "留空則用作者提供的標題",
+        autoName: "自動以作者標題命名，並下載所有多服裝形態的提示詞",
+        cancel: "取消",
+        confirm: "開始下載並獲取元數據",
+        needUrl: "請填模型鏈接",
+        needName: "請填模型名稱",
+        downloading: ({ named }) => {
+          return `下載中 ${named("percent")}%（${named("got")} / ${named("total")}）`;
+        },
+        done: "下載完成，已寫入預覽圖與提示詞",
+        failed: "下載失敗",
       },
       foot: {
         text: ({ named }) => {
@@ -551,7 +774,7 @@ const message = {
             name: "工作流",
           },
           {
-            name: "備註",
+            name: "提示詞",
           },
           {
             name: "基本信息",
@@ -564,6 +787,8 @@ const message = {
           creationTime: "創建時間",
           modificationTime: "修改時間",
           buttonText: "使用此模型",
+          notImageFile: "請選擇圖片格式文件",
+          editName: "點擊修改",
         },
         workflow: {
           importText: "導入",
@@ -611,6 +836,24 @@ const message = {
             placeholder: "請輸入備註名稱(默认随机填充)",
           },
         },
+        prompt: {
+          authorTab: "作者預設",
+          customTab: "我的提示詞",
+          authorTabCount: "作者服裝預設",
+          customTabCount: "自定義提示詞",
+          createSet: "新建預設",
+          copyOne: "一鍵復製",
+          copyDone: "已復製",
+          tokensTip: "作者提供觸發詞（點擊單獨復製）",
+          setTitle: "設置套件標題",
+          contentLabel: "自定義提示詞內容",
+          protected: "防覆蓋保護",
+          deleteSet: "刪除此套件",
+          noAuthor: "該作者沒有提供觸發詞，可切到「我的提示詞」自己寫",
+          noCustom: "還沒有自定義提示詞，點右上角「新建預設」添加",
+          placeholder: "輸入提示詞，一鍵獲取元數據時會跳過這裡的內容",
+          saveFailed: "提示詞保存失敗",
+        },
         useButtonText: "使用此模型",
       },
     },
@@ -645,6 +888,21 @@ const message = {
             value: "noFull",
           },
         ],
+      },
+      civitai: {
+        title: "C站 API",
+        describe: "設置 Civitai 的 API Key，用於讀取 C站 模型元數據（保存在插件配置文件中）",
+        placeholder: "貼上 C站 API Key",
+        saveText: "保存",
+        clearText: "清除",
+        openText: "獲取 API Key",
+        showText: "顯示",
+        hideText: "隱藏",
+        emptyStatus: "尚未設置 API Key",
+        setStatus: "已設置",
+        emptyInputTip: "請先貼上 API Key",
+        savedTip: "已保存到插件配置文件",
+        clearedTip: "已清除",
       },
     },
     messages: {

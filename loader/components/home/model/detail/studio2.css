@@ -1,0 +1,216 @@
+/*
+ * 右侧模型详情（检查器）V2 样式
+ *
+ * 契约：STUDIO-V2-SPEC.md 第 2 / 3 / 7.4 节
+ * 视觉基准：gemini-code-1791895693133.html 414-524 行（只读，未改动）
+ *
+ * 这个文件只覆盖 static/css/index.css 里已有的 .model_detail 段落，
+ * 不新增 DOM、不改任何组件逻辑。靠加载顺序取胜：
+ * loader/index.html 第 13 行把它排在 static/css/index.css 之后，
+ * 所以选择器与旧产物同深度（body .loader_page .home_page .content .model_display .model_detail）
+ * 即可覆盖，不需要额外提高深度或 !important（等级条选中态除外，旧产物自己就用了 !important）。
+ *
+ * 尺寸换算（SPEC 第 3 节，2400px 窗口 / 18px 基准字号）：
+ *   长度 Xpx → X * 0.04167vw；字号 Xpx → X / 18 rem；圆角用 --s2-r-* token。
+ * 颜色一律取 static/css/studio2-tokens.css 的 --s2-* 变量。
+ */
+
+/* ── 面板本体：17vw → 18.75vw（450px），换 V2 底色与描边 ─────── */
+body .loader_page .home_page .content .model_display .model_detail {
+  width: 18.75vw; /* 450px */
+  height: 100%;
+  padding: 0.52vw 0.52vw 0.58vw 0.52vw; /* 下内边距 1vw → 0.58vw（14px）：底部留白交给 .detail-footer */
+  border: 0.042vw solid var(--s2-line); /* 1px */
+  background: var(--s2-panel);
+  border-radius: var(--s2-r-md); /* 10px */
+  overflow: hidden; /* 作为 flex column 不自己滚：滚动交给各页签内部（10.7） */
+}
+
+/* ── 预览图：固定 8.7vw 高 → 16:9，贴 V2 深底 ────────────── */
+body .loader_page .home_page .content .model_display .model_detail .img_container {
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: var(--s2-inset);
+  border: 0.042vw solid var(--s2-line); /* 1px */
+  border-radius: var(--s2-r-md); /* 10px */
+}
+
+/* ── 右上角动作按钮组（查看大图 / 替换缩略图） ────────────── */
+body .loader_page .home_page .content .model_display .model_detail .img_container .option_group {
+  right: 0.333vw; /* 8px */
+  top: 0.333vw; /* 8px */
+  gap: 0.25vw; /* 6px */
+  padding: 0.042vw; /* 1px */
+  background: rgba(0, 0, 0, 0.65);
+  border: 0.042vw solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--s2-r-xs); /* 4px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .img_container .option_group .icon_container {
+  padding: 0.167vw 0.25vw; /* 4px 6px */
+  color: #ffffff;
+  border-radius: 0.125vw; /* 3px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .img_container .option_group .icon_container em {
+  font-size: 0.8rem; /* 11px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .img_container .option_group .icon_container:hover {
+  color: var(--s2-cyan);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 两个按钮之间的分隔条：V2 用间距分栏，这里压成一条极淡的竖线 */
+body .loader_page .home_page .content .model_display .model_detail .img_container .option_group .block {
+  width: 0.042vw; /* 1px */
+  height: 0.5vw; /* 12px */
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0;
+}
+
+/* ── 模型名（点击可改名）───────────────────────────────── */
+body .loader_page .home_page .content .model_display .model_detail .model_name {
+  color: var(--s2-tx);
+  font-size: 1rem; /* 13px */
+  font-weight: 600;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .model_name:hover {
+  color: var(--s2-tx-2);
+}
+
+body .loader_page .home_page .content .model_display .model_detail .name_input {
+  background: var(--s2-inset);
+  border: 0.042vw solid var(--s2-line-2);
+  border-radius: var(--s2-r-xs); /* 4px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .name_input input {
+  color: var(--s2-tx);
+  font-size: 1rem; /* 13px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .name_input span:hover em {
+  color: var(--s2-cyan);
+}
+
+/* ── 等级条：固定宽 2.8vw 的 5 格 → 等分 5 格，选中用等级色 ─ */
+body .loader_page .home_page .content .model_display .model_detail .level_group {
+  background: var(--s2-inset);
+  border: 0.042vw solid var(--s2-line);
+  border-radius: var(--s2-r-sm); /* 6px */
+  padding: 0.25vw; /* 6px */
+  gap: 0.25vw; /* 6px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .level_group .level_item {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  height: 0.833vw; /* 20px */
+  margin: 0; /* 由 .level_group 的 gap 统一控距 */
+  background: var(--s2-card);
+  border: 0.042vw solid var(--s2-line);
+  border-radius: var(--s2-r-xs); /* 4px */
+  color: var(--s2-tx-2);
+  font-size: 0.8rem; /* 11px */
+  font-weight: 600;
+}
+
+/* 选中态：底色来自内联的 --color（getLevelInf 给的等级色），这里补文字与描边 */
+body .loader_page .home_page .content .model_display .model_detail .level_group .selected {
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+/* ── 页签：激活态白字 + 底部 2px 青色下划线 ─────────────── */
+body .loader_page .home_page .content .model_display .model_detail .menu_tab {
+  border-bottom: 0.042vw solid var(--s2-line); /* 1px */
+  padding: 0 0.583vw; /* 14px */
+  margin: 0.417vw 0 0.167vw; /* 10px 0 4px */
+  gap: 0.667vw; /* 16px */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .menu_tab .menu_item {
+  position: relative;
+  padding: 0.333vw 0; /* 8px */
+  margin: 0; /* 间距交给 .menu_tab 的 gap */
+  color: var(--s2-tx-2);
+  font-size: 0.8rem; /* 12px */
+  font-weight: 500;
+}
+
+/* 旧产物给中间项单独加的 1vw 外边距，与 gap 叠加会不齐，归零 */
+body .loader_page .home_page .content .model_display .model_detail .menu_tab .menu_item:nth-of-type(2) {
+  margin: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .menu_tab .active_menu {
+  color: var(--s2-tx) !important;
+  font-weight: 600;
+}
+
+/* 下划线压在 .menu_tab 的 border-bottom 上（高度 2px → 0.083vw） */
+body .loader_page .home_page .content .model_display .model_detail .menu_tab .active_menu::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.042vw;
+  height: 0.083vw;
+  background: var(--s2-cyan);
+  border-radius: 0.083vw;
+}
+
+/* ── 底部固定悬浮主行动按钮（SPEC 10.7）──────────────────────
+ * 模板（视觉基准 777-792 行）把 .btn-apply-model 放在 aside 的最末：
+ *   margin: 10px 14px 14px; background: var(--accent-blue); padding: 10px; border-radius: 6px。
+ * 插件里 .model_detail 是 height:100% 的 flex column，所以用 sticky 把它钉在右栏底部：
+ * 卡片在它上面滚，按钮始终可见、不会被列表顶走。
+ * sticky 依赖「外层不滚动」这个前提 —— 提示词页签下 .prompt-studio-wrapper 是 overflow:hidden
+ * 且吃掉剩余高度，所以它在提示词视图里恒成立。 */
+body .loader_page .home_page .content .model_display .model_detail .detail-footer {
+  flex: 0 0 auto; /* 不参与伸缩，永远占住底部 */
+  position: sticky;
+  bottom: 0;
+  z-index: 3; /* 压在卡片之上，卡片滚动时从它下面穿过 */
+  padding: 0.417vw 0.583vw 0.583vw; /* 10px 14px 14px */
+  background: var(--s2-panel); /* 与右栏同底，滚动内容不会透出来 */
+}
+
+body .loader_page .home_page .content .model_display .model_detail .btn-apply-model {
+  width: 100%;
+  height: auto;
+  padding: 0.417vw; /* 10px */
+  background: var(--s2-blue);
+  border-radius: var(--s2-r-sm); /* 6px */
+  color: #ffffff;
+  font-size: 0.8rem; /* 12px */
+  font-weight: 600;
+  text-align: center;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .btn-apply-model:hover {
+  background: var(--s2-blue-hi);
+  box-shadow: 0 0 0.25vw 0.042vw var(--s2-blue); /* 0 0 6px 1px */
+}
+
+/* ── 提示词工作台挂载点：让它在页签与底部按钮之间吃掉剩余高度 ─
+ * 组件自身的布局在 prompt/index.css 里，这里只补一层父级约束：
+ * flex:1 撑满 + min-height:0 允许内部滚动容器塌缩，
+ * 避免 flex 链断开导致卡片把右栏撑高（SPEC 7.3 的「容器自身滚」前提）。 */
+body .loader_page .home_page .content .model_display .model_detail > .prompt-studio-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 滚动容器必须有下限高度，否则「容器自身滚」在矮右栏里会退化成「把内容压扁」：
+ * .cards-vertical-scroll 是 flex item，默认 min-height:auto 可被压到低于内容高度，
+ * 卡内 textarea 因此拿到 0 高度、内容整段不可见（实测：右栏可用 280px、2 张卡时卡高被压到 28px）。
+ * 给一个最小高度（约等于一张卡 + 间距）逼出滚动条，卡片保持可读高度。
+ * 放在 detail 这一层而不是 prompt/index.css，是为了不改动组件自身的选择器深度。 */
+body .loader_page .home_page .content .model_display .model_detail > .prompt-studio-wrapper .cards-vertical-scroll {
+  min-height: 9.7vw; /* 233px ≈ 两张压缩后的卡（轴高 101px）+ 12px 间距 */
+}

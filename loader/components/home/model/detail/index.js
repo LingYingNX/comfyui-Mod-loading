@@ -2,7 +2,7 @@ import { getLevelInf } from "../../../../static/js/public.js";
 // import { api } from "/scripts/api.js";
 import BasicInf from "./basicInf/index.js";
 import Workflow from "./workflow/index.js";
-import Note from "./note/index.js";
+import Prompt from "./prompt/index.js";
 import IconRenderer from "../../../public/iconRenderer.js";
 
 function getApi() {
@@ -29,7 +29,7 @@ export default {
   components: {
     BasicInf,
     Workflow,
-    Note,
+    Prompt,
   },
   data() {
     return {
@@ -111,7 +111,8 @@ export default {
     renderPic() {
       if (this.model) {
         if (this.renderer?.rendering) {
-          alert(this.$t("home.head.renderingAlert"));
+          // 契约第 1 节禁用 alert：同一提示改用 $message（key 复用 home.head.renderingAlert）
+          this.$message({ type: "error", message: this.$t("home.head.renderingAlert") });
           return;
         }
         this.renderer.render(this.node, [this.model]);
@@ -124,26 +125,28 @@ export default {
     // Change cover image path
     inputCover(e) {
       const file = e.target.files[0];
-      const isImage = file.type.startsWith("image");
-      if (!isImage) {
-        this.$message({ type: "error", message: "请选择图片格式文件" });
+      if (!file) return;
+      // 只认图片：提示走 $message（契约第 1 节禁用 alert）
+      if (!file.type.startsWith("image")) {
+        this.$message({
+          type: "error",
+          message: this.$t("home.modelDetail.basicInf.notImageFile"),
+        });
         return;
       }
-      if (file) {
-        try {
-          const body = new FormData();
-          body.append("image", file);
-          body.append("type", this.model.type);
-          body.append("mtype", this.model.mtype);
-          body.append("name", this.model.name);
-          const api = getApi();
-          api.fetchApi("/cs/upload_thumbnail", { method: "POST", body });
-        } catch (error) {
-          alert(error);
-        }
-        const filepath = URL.createObjectURL(file);
-        this.$emit("modifyCover", filepath);
+      try {
+        const body = new FormData();
+        body.append("image", file);
+        body.append("type", this.model.type);
+        body.append("mtype", this.model.mtype);
+        body.append("name", this.model.name);
+        const api = getApi();
+        api.fetchApi("/cs/upload_thumbnail", { method: "POST", body });
+      } catch (error) {
+        // 上传是 fire-and-forget：失败时缩略图保持旧图，用户可重选，不再 alert（契约第 1 节）
       }
+      const filepath = URL.createObjectURL(file);
+      this.$emit("modifyCover", filepath);
     },
     changeMenu(index) {
       this.menuIndex = index;
@@ -160,7 +163,7 @@ export default {
                   <input type="file" id="file_input" accept="image/*" @change="inputCover($event)" />
                 </div>
               </div>
-              <div v-if="isReadonly" class="model_name" @click="editName" title="点击修改"><p>{{model.name}}</p></div>
+              <div v-if="isReadonly" class="model_name" @click="editName" :title="$t('home.modelDetail.basicInf.editName')"><p>{{model.name}}</p></div>
               <div v-else class="name_input">
                 <input ref="nameInput" type="value" :value="model.name" @blur="blurInput"  @keydown="nameInputKeyDown"/>
                 <span @mousedown="changeName($event)"><em class="iconfont icon-edit"></em></span> 
@@ -172,9 +175,11 @@ export default {
                 <div v-for="(item,index) in $t('home.modelDetail.menuTab')" :key="index" class="menu_item" :class="{'active_menu': index === menuIndex }" @click="changeMenu(index)">{{item.name}}</div>
               </div>
               <Workflow v-if="menuIndex === 0" :model="model" />
-              <Note v-if="menuIndex === 1" :model="model" />
+              <Prompt v-if="menuIndex === 1" :model="model" />
               <BasicInf v-if="menuIndex === 2"  @addTag="addTag" @deleteTag="deleteTag" :model="model" />
-              <button class="use_button" @click="useModel">{{$t("home.modelDetail.useButtonText")}}</button>
+              <div class="detail-footer">
+                <button class="use_button btn-apply-model" @click="useModel">{{$t("home.modelDetail.useButtonText")}} ({{model.type}})</button>
+              </div>
           </div>
   `,
 };

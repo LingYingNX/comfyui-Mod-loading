@@ -1,5 +1,7 @@
 import ModelList from "./list/index.js";
 import ModelDetail from "./detail/index.js";
+import DownloadModal from "../../public/downloadModal.js";
+import { KNOWN_ARCHS, ARCH_OTHER } from "../../../static/js/public.js";
 // import { api } from "/scripts/api.js";
 
 function getApi() {
@@ -31,7 +33,7 @@ async function update_config(model, key, old_data, cb = (resp) => {}) {
 }
 
 export default {
-  components: { ModelList, ModelDetail },
+  components: { ModelList, ModelDetail, DownloadModal },
   props: {
     allList: {
       default: () => {
@@ -73,11 +75,13 @@ export default {
       immediate: true,
       deep: true,
     },
+    // 架构筛选（顶栏下拉写入 searchParameter.arch，由上面的 searchParameter watcher 触发重过滤）
   },
   data() {
     return {
       curList: [],
       selectedModel: null,
+      downloadOpen: false,
     };
   },
   methods: {
@@ -157,13 +161,18 @@ export default {
         const key = x.name.includes(searchParameter.key);
         const level = searchParameter.level === 0 || x.level === searchParameter.level;
         const tag = searchParameter.tags.length === 0 || x.tags.find((tagItem) => searchParameter.tags.includes(tagItem));
+        // 架构筛选：未选（空串）时不过滤；__other__ 表示「不属于任何已知架构」
+        const archFilter = searchParameter.arch || "";
+        const arch =
+          !archFilter ||
+          (archFilter === ARCH_OTHER ? !KNOWN_ARCHS.includes(x.arch) : x.arch === archFilter);
         if (this.node) {
           let filters = this.node.CSgetModelFilters(true);
           if (filters?.includes(x.name)) {
             return false;
           }
         }
-        return key && level && tag;
+        return key && level && tag && arch;
       });
       this.sortList(searchParameter.sort, newList);
       this.curList = newList;
@@ -224,11 +233,44 @@ export default {
           break;
       }
     },
+    // 打开下载弹窗
+    openDownload() {
+      this.downloadOpen = true;
+    },
+    // 下载目标 mtype：优先用当前选中模型，其次列表第一条
+    currentMtype() {
+      return this.selectedModel?.mtype || this.curList[0]?.mtype || "loras";
+    },
+    // 下载目标分类：当前选中的分类标签；没选就落到模型根目录
+    currentCategory() {
+      const tags = this.searchParameter?.tags || [];
+      return tags[0] || "";
+    },
+    // 单模型元数据抓完后回读配置，把 arch / update / cover / 提示词贴回卡片
+    async refreshMetadata(item) {
+      if (!item?.mtype || !item?.name) return;
+      try {
+        const resp = await getApi().fetchApi("/cs/fetch_config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mtype: item.mtype, models: [item.name] }),
+        });
+        const map = await resp.json();
+        const fresh = map && map[item.name];
+        if (!fresh) return;
+        ["arch", "update", "locked", "cover", "prompt_authors", "prompts"].forEach((key) => {
+          if (key in fresh) this.$set(item, key, fresh[key]);
+        });
+      } catch (error) {
+        // 静默失败：卡片上是旧值，用户再点一次即可
+      }
+    },
   },
   template: `
             <div class="model_display">
-                <ModelList v-if="curList.length > 0" :curList="curList" :selected-model="selectedModel" :column="column" @changeSelectedModel="changeSelectedModel" @useModel="useModel" />
+                <ModelList v-if="curList.length > 0" :curList="curList" :selected-model="selectedModel" :column="column" @changeSelectedModel="changeSelectedModel" @useModel="useModel" @openDownload="openDownload" @refreshMetadata="refreshMetadata" />
                 <ModelDetail v-if="curList.length > 0" :model="selectedModel" @modifyCover="modifyCover" @changeLevel="changeLevel" @modifyName="modifyName" @addTag="addTag" @deleteTag="deleteTag"  @useModel="useModel" />
+                <DownloadModal v-if="downloadOpen" :mtype="currentMtype()" :category="currentCategory()" @close="downloadOpen = false" />
                 <div v-if="curList.length === 0" class="empty">
                   <p v-if="searchParameter.key">{{$t('home.searchValue')}}: {{searchParameter.key}}</p>
                   {{$t('noResult')}}

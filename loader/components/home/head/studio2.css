@@ -1,0 +1,290 @@
+/*
+ * 顶栏 V2 样式 —— components/home/head/index.js 的补充。
+ * 契约：STUDIO-V2-SPEC.md 第 2 节（设计 token）/ 第 3 节（尺寸换算：Xpx -> X*0.04167vw）。
+ *
+ * 旧产物 loader/static/css/index.css:156-243 与 components/public/hoverMenu.js 自注入的
+ * styleInnerHtml 把顶栏定成 #383838 底 + 白字；这里统一换成 --s2-* 面板色，
+ * 并把「一键获取元数据」按模板做成顶栏唯一的强调按钮（深底 + 亮蓝字 + 描边）。
+ * 选择器一律写到 body .loader_page ... 同级或更深 —— hoverMenu 的 <style> 注入在 body 里、
+ * 文档顺序上晚于本文件，只能靠特异性压过它。
+ *
+ * 顺序不能改：基础态 -> :hover -> .fetching（获取中），最后一条特异性最高。
+ */
+
+/* ---------- 标题 / 搜索框 / 分隔块 ---------- */
+body .loader_page .home_page .content .head .left .title {
+  color: var(--s2-tx);
+}
+
+body .loader_page .home_page .content .head .left .search {
+  box-sizing: border-box;
+  background: var(--s2-card);
+  border: 1px solid var(--s2-line);
+  border-radius: var(--s2-r-sm);
+  transition: border-color 0.3s;
+}
+
+body .loader_page .home_page .content .head .left .search:hover {
+  border-color: var(--s2-line-2);
+}
+
+body .loader_page .home_page .content .head .left .search input {
+  color: var(--s2-tx);
+}
+
+body .loader_page .home_page .content .head .left .search input::placeholder {
+  color: var(--s2-tx-3);
+}
+
+body .loader_page .home_page .content .head .left .search span em {
+  color: var(--s2-tx-2);
+}
+
+body .loader_page .home_page .content .head .left .search span::before {
+  background: var(--s2-line-2);
+}
+
+body .loader_page .home_page .content .head .left .search span:hover em {
+  color: var(--s2-cyan);
+}
+
+body .loader_page .home_page .content .head .left .block {
+  background: var(--s2-line);
+}
+
+/* ---------- 三个 HoverMenu（排序 / 等级 / 列数） ---------- */
+body .loader_page .home_page .content .head .left .hover_menu {
+  box-sizing: border-box;
+  background: var(--s2-card);
+  border: 1px solid var(--s2-line);
+  border-radius: var(--s2-r-btn, var(--s2-r-sm));
+  color: var(--s2-tx-2);
+}
+
+body .loader_page .home_page .content .head .left .hover_menu:hover {
+  background: var(--s2-card-2);
+  border-color: var(--s2-cyan);
+  color: var(--s2-cyan);
+}
+
+body .loader_page .home_page .content .head .left .hover_menu ul,
+body .loader_page .home_page .content .head .left .hover_menu:hover ul {
+  background: var(--s2-panel);
+  border: 1px solid var(--s2-line);
+  box-shadow: 0 0.42vw 1vw rgba(0, 0, 0, 0.45);
+}
+
+body .loader_page .home_page .content .head .left .hover_menu ul li {
+  color: var(--s2-tx-2);
+}
+
+body .loader_page .home_page .content .head .left .hover_menu ul li:hover {
+  background: var(--s2-cyan);
+  color: #102d29;
+}
+
+/* 数字列数那个 HoverMenu 没传 icon，纯文本，稍微收一点左右内距 */
+body .loader_page .home_page .content .head .left .hover_menu:not(:has(em)) {
+  padding-left: 0.7vw;
+  padding-right: 0.7vw;
+}
+
+/* ---------- 一键获取元数据（原版 .render_button：灰底白字，hover 蓝底） ---------- */
+body .loader_page .home_page .content .head .left .render_button {
+  box-sizing: border-box;
+  background: #383838;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.4vw;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+body .loader_page .home_page .content .head .left .render_button:hover {
+  background: #2a82e4;
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* ---------- 架构筛选下拉（模板 .dropdown-wrapper / .dropdown-btn / .dropdown-menu） ---------- */
+body .loader_page .home_page .content .head .left .arch_menu {
+  position: relative;
+  display: inline-block;
+}
+
+body .loader_page .home_page .content .head .left .arch_btn {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.25vw;
+  background: var(--s2-card);
+  border: 1px solid var(--s2-line);
+  border-radius: var(--s2-r-btn, var(--s2-r-sm));
+  color: var(--s2-tx-2);
+  font-size: 0.8rem;
+  height: 1.9vw;
+  padding: 0 0.5vw;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+body .loader_page .home_page .content .head .left .arch_btn:hover,
+body .loader_page .home_page .content .head .left .arch_btn.open {
+  background: var(--s2-card-2);
+  border-color: var(--s2-cyan);
+}
+
+body .loader_page .home_page .content .head .left .arch_btn_label {
+  color: var(--s2-tx-2);
+}
+
+/* 按钮左侧的小图标：模板里是 🧩，按反面清单换成内联 SVG（12px -> 0.63vw） */
+body .loader_page .home_page .content .head .left .arch_btn_icon {
+  width: 0.63vw;
+  height: 0.63vw;
+  flex: 0 0 auto;
+  color: var(--s2-tx-3);
+}
+
+/* 当前选中项：模板里是青色加粗（#selectedArchText → var(--accent-cyan)） */
+body .loader_page .home_page .content .head .left .arch_btn_value {
+  color: var(--s2-cyan);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+body .loader_page .home_page .content .head .left .arch_btn_arrow {
+  color: var(--s2-tx-3);
+  font-size: 0.7rem;
+  font-style: normal;
+  line-height: 1;
+}
+
+body .loader_page .home_page .content .head .left .arch_list {
+  position: absolute;
+  top: calc(100% + 0.25vw);
+  left: 0;
+  z-index: 60;
+  min-width: 8.5vw;
+  padding: 0.17vw 0;
+  background: var(--s2-card-2);
+  border: 1px solid var(--s2-line-2);
+  border-radius: var(--s2-r-sm);
+  box-shadow: 0 0.42vw 1vw rgba(0, 0, 0, 0.6);
+}
+
+body .loader_page .home_page .content .head .left .arch_item {
+  display: flex;
+  align-items: center;
+  gap: 0.25vw;
+  padding: 0.3vw 0.5vw;
+  font-size: 0.8rem;
+  color: var(--s2-tx-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* 架构彩色圆点（模板 :951-954 的 🟣🔴🟢⚡ 换成 SVG，10px -> 0.5vw） */
+body .loader_page .home_page .content .head .left .arch_item_dot {
+  width: 0.42vw;
+  height: 0.42vw;
+  flex: 0 0 auto;
+}
+
+body .loader_page .home_page .content .head .left .arch_item_name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body .loader_page .home_page .content .head .left .arch_item_right {
+  display: flex;
+  align-items: center;
+  gap: 0.25vw;
+  flex: 0 0 auto;
+}
+
+/* 当前选中项的 ● 标记（模板 :950 只在选中那项上出现） */
+body .loader_page .home_page .content .head .left .arch_item_mark {
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--s2-cyan);
+}
+
+body .loader_page .home_page .content .head .left .arch_item:hover {
+  background: var(--s2-line);
+  color: var(--s2-tx);
+}
+
+body .loader_page .home_page .content .head .left .arch_item.selected {
+  background: var(--s2-cyan-glow);
+  color: var(--s2-cyan);
+  font-weight: 600;
+}
+
+body .loader_page .home_page .content .head .left .arch_item_count {
+  color: var(--s2-tx-3);
+  font-size: 0.7rem;
+}
+
+/* ---------- 顶栏右端：关闭页面（模板 :967-969 的 ⏻ 圆形按钮） ----------
+ * 模板把它写成 .btn-badge + inline 的「圆形 + 32px + padding:0 + 居中」，这里落成 token 版：
+ * 32px -> 1.33vw，底色/描边走 .btn-badge 的 #383838 + border-subtle 那一档（= --s2-card / --s2-line），
+ * hover 走 #4d4d4d + border-focus（= --s2-card-2 / --s2-line-2），没有旧产物那个红底。
+ * 图标用内联 SVG 电源符号，不用模板的 ⏻ emoji（反面清单禁 emoji）。
+ */
+body .loader_page .home_page .content .head .right .close_button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.33vw;
+  height: 1.33vw;
+  padding: 0;
+  background: var(--s2-card);
+  border: 1px solid var(--s2-line);
+  border-radius: 50%;
+  color: var(--s2-tx-2);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+body .loader_page .home_page .content .head .right .close_button svg {
+  width: 0.68vw;
+  height: 0.68vw;
+}
+
+body .loader_page .home_page .content .head .right .close_button:hover {
+  background: var(--s2-card-2);
+  border-color: var(--s2-line-2);
+  color: var(--s2-tx);
+}
+
+/* ---------- 获取中：进度文字 + 按钮活跃态 ---------- */
+body .loader_page .home_page .content .head .left .fetch_tip {
+  margin-left: 0.42vw;
+  max-width: 24vw;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
+  color: var(--s2-tx-2);
+}
+
+body .loader_page .home_page .content .head .left .render_button.fetching,
+body .loader_page .home_page .content .head .left .render_button[disabled] {
+  background: #2a82e4;
+  border-color: transparent;
+  color: #ffffff;
+  cursor: progress;
+}
+
+body .loader_page .home_page .content .head .left .render_button.fetching:hover,
+body .loader_page .home_page .content .head .left .render_button[disabled]:hover {
+  background: #2a82e4;
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: none;
+}

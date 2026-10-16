@@ -1,0 +1,90 @@
+/*
+ * 右键菜单 V2 样式。
+ * 契约见 E:\DeepSeek项目\comfyui插件\STUDIO-V2-SPEC.md 第 7.2 节。
+ * 尺寸按第 3 节换算：模板 px → X * 0.04167vw（长度/圆角）、X / 18 rem（字号）。
+ *
+ * 注意：菜单节点由 contextMenu.js 挂到 document.body（不在 .loader_page 内），
+ * 因为 position:fixed 需要以视口为参照，不能被 .loader_page 里可能的
+ * transform/filter 祖先改掉参照系。所以：
+ *   - 这里的选择器前缀只能是 body，不能带 .loader_page；
+ *   - 颜色用字面量，不用 --s2-* 变量（那些变量定义在 body .loader_page 上，取不到）。
+ * 也因为这个类名是 V2 新增的、旧产物里没有，不需要用深度去压旧规则。
+ */
+
+body .s2-context-menu {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9990; /* 高于卡片，低于 confirmBox / message 的 9999 */
+  display: none;
+  flex-direction: column;
+  min-width: 7.29vw; /* 175px */
+  padding: 0.17vw 0; /* 4px 0 */
+  background: #242429;
+  border: 1px solid #3d3d46;
+  border-radius: 0.25vw; /* 6px */
+  box-shadow: 0 0.42vw 1.25vw rgba(0, 0, 0, 0.6); /* 0 10px 30px */
+  box-sizing: border-box;
+  font-size: 0.8rem; /* 12px */
+  user-select: none;
+}
+
+body .s2-context-menu.is-open {
+  display: flex;
+}
+
+body .s2-context-menu .s2-context-item {
+  display: flex;
+  align-items: center;
+  gap: 0.33vw; /* 8px */
+  padding: 0.29vw 0.5vw; /* 7px 12px */
+  color: #d1d5db;
+  font-size: 0.8rem; /* 12px */
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+body .s2-context-menu .s2-context-item:hover {
+  background: #31313a;
+  color: #ffffff;
+}
+
+body .s2-context-menu .s2-context-item .s2-context-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  font-size: 1rem; /* 14px，SVG 用 1em 跟随 */
+}
+
+body .s2-context-menu .s2-context-item .s2-context-icon svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+body .s2-context-menu .s2-context-item .s2-context-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body .s2-context-menu .s2-context-item.is-danger {
+  color: #ff5733;
+}
+
+body .s2-context-menu .s2-context-item.is-danger:hover {
+  background: rgba(255, 87, 51, 0.14);
+  color: #ff8a6b;
+}
+
+body .s2-context-menu .s2-context-divider {
+  height: 1px;
+  margin: 0.17vw 0; /* 4px 0 */
+  background: #33333a;
+  flex: 0 0 auto;
+}

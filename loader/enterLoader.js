@@ -9,7 +9,12 @@ function loadPage() {
   let page = getPage();
   if (page) return page;
   window.removeEventListener("message", message);
-  var realpath = "/cs/loader/index.html";
+  // index.html 是「插件面板的壳」：它只在整个 ComfyUI 页面刷新时加载一次，
+  // 之后一直在 iframe 里活着（enterLoader 只创建一次，靠 display 切换显隐）。
+  // 而服务端给 index.html 的响应不带 Cache-Control（只有 ETag / Last-Modified），
+  // 浏览器可能用启发式缓存直接回旧 HTML → 旧的 <link> 列表 + 新的 CSS/JS，
+  // 表现为「面板一半新一半旧」。加一个每次加载都不同的查询串，强制拿最新壳。
+  var realpath = "/cs/loader/index.html?v=" + Date.now();
   const html = `<iframe id="loader_iframe" src="${realpath}" frameborder="0"></iframe>`;
   document.body.insertAdjacentHTML("beforeend", html);
   page = getPage();

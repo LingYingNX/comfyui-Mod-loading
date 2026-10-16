@@ -1,8 +1,13 @@
+import asyncio
 import json
+import os
+import shutil
+import subprocess
 import sys
 from os import PathLike
-from hashlib import md5
+from hashlib import md5, sha256
 from aiohttp.web_urldispatcher import AbstractRoute, UrlDispatcher
+import aiohttp
 import server
 import time
 import folder_paths
@@ -39,6 +44,7 @@ class ConfigManager:
             config = self.load_config()
         self.details = config.get("details", {})
         self.filters = config.get("filters", {})
+        self.settings = config.get("settings", {})
 
     def get_detail(self, mtype: str) -> dict[dict]:
         if mtype not in self.details:
@@ -53,21 +59,42 @@ class ConfigManager:
     def load_config(self):
         if not self.path.exists():
             return {}
+        bak = self.path.with_name(self.path.name + ".bak")
+        for p in (self.path, bak):
+            if not p.exists():
+                continue
+            try:
+                return read_json(p)
+            except Exception as e:
+                sys.stderr.write(f"ComfyUI-Studio Fetch config: {p} read failed: {e}\n")
+                sys.stderr.flush()
+        # 主文件与备份都读不出来 -> 判定损坏：挪走坏文件，并禁止本次会话覆盖磁盘
         try:
-            config: dict[str, list[dict]] = read_json(self.path)
-        except Exception as e:
-            sys.stderr.write(f"ComfyUI-Studio Fetch config: {e}\n")
-            sys.stderr.flush()
-            config = {}
-        return config
+            self.path.replace(self.path.with_name(self.path.name + f".corrupt-{int(time.time())}"))
+        except Exception:
+            pass
+        self.readonly = True
+        return {}
 
     def dump_config(self, config: dict[str, list[dict]] = None):
+        if getattr(self, "readonly", False):
+            sys.stderr.write("ComfyUI-Studio: config is corrupt, skip dump to avoid overwriting\n")
+            sys.stderr.flush()
+            return
         if not self.path.parent.exists():
             self.path.parent.mkdir(parents=True)
         if config is None:
-            config = {"details": self.details, "filters": self.filters}
+            config = {"details": self.details, "filters": self.filters, "settings": self.settings}
         try:
-            self.path.write_text(json.dumps(config, indent=4, ensure_ascii=False), encoding="utf8")
+            tmp = self.path.with_name(self.path.name + ".tmp")
+            tmp.write_text(json.dumps(config, indent=4, ensure_ascii=False), encoding="utf8")
+            if self.path.exists():
+                try:
+                    read_json(self.path)  # 只把「合法 JSON」的当前版本留作备份
+                    shutil.copy2(self.path, self.path.with_name(self.path.name + ".bak"))
+                except Exception:
+                    pass
+            os.replace(tmp, self.path)  # 原子替换：断电最多留个 .tmp，主文件永远完整
         except Exception as e:
             sys.stderr.write(f"ComfyUI-Studio Fetch config: {e}\n")
             sys.stderr.flush()
@@ -422,6 +449,13 @@ async def fetch_config(request: web.Request):
             old_model_map[name] = mcfg
             CFG_MANAGER.dirty = True
         mcfg = old_model_map[name]
+        # V2 字段兜底：只补读取时的默认值，不置 dirty（不为默认值重写整份配置）
+        for _k, _default in V2_MODEL_FIELDS.items():
+            if _k not in mcfg:
+                mcfg[_k] = deepcopy(_default)
+        # 架构：抓过 Civitai 的以抓到的为准；没抓过的按文件名猜一个，让左侧导航立刻能用
+        if not mcfg.get("arch"):
+            mcfg["arch"] = guess_arch(name)
         # mcfg["name"] 和 mname 不匹配
         if Path(mcfg.get("name", "")).as_posix() != Path(name).as_posix():
             mcfg["name"] = name
@@ -706,6 +740,647 @@ async def test(request: web.Request):
     post = await request.post()
     json_data = "{}"
     return web.Response(status=200, body=json_data)
+
+
+# ---- 通用设置存取：写入 model-config.json 顶层 settings 键 ----
+# 用途：C站 API Key 等原先只存浏览器 localStorage 的设置，改存插件配置文件，
+# 换浏览器/换端口/清浏览器数据都不丢。
+SETTING_KEYS = {"civitai_api_key"}
+
+
+@server.PromptServer.instance.routes.post("/cs/fetch_setting")
+async def fetch_setting(request: web.Request):
+    body = {}
+    try:
+        body = json.loads(await request.read())
+    except Exception:
+        pass
+    key = str(body.get("key") or "")
+    if key not in SETTING_KEYS:
+        return web.Response(status=200, body=json.dumps({"status": False, "message": "unknown key"}))
+    return web.Response(
+        status=200,
+        body=json.dumps({"status": True, "key": key, "value": CFG_MANAGER.settings.get(key, "")}),
+    )
+
+
+@server.PromptServer.instance.routes.post("/cs/save_setting")
+async def save_setting(request: web.Request):
+    body = {}
+    try:
+        body = json.loads(await request.read())
+    except Exception:
+        pass
+    key = str(body.get("key") or "")
+    if key not in SETTING_KEYS:
+        return web.Response(status=200, body=json.dumps({"status": False, "message": "unknown key"}))
+    value = str(body.get("value") or "").strip()
+    CFG_MANAGER.settings[key] = value
+    CFG_MANAGER.dump_config()
+    return web.Response(status=200, body=json.dumps({"status": True, "key": key, "saved": True}))
+
+
+# ===========================================================================
+# V2: 上锁 / 提示词 / 元数据抓取 / 模型下载
+#
+# 设计约定：
+#   - 新增字段一律挂在 details[mtype][mname] 下，旧数据缺字段时按读取默认值处理，
+#     不为了补默认值重写整份配置。
+#   - 耗时操作（算 hash、查 Civitai、下模型）都丢进后台 asyncio 任务，前端拿 task_id
+#     轮询 status 接口。任务表在内存里，重启即清空。
+# ===========================================================================
+
+V2_MODEL_FIELDS = {
+    "locked": False,
+    "arch": "",
+    "update": None,
+    "prompt_authors": [],
+    "prompts": [],
+}
+
+CIVITAI_API = "https://civitai.com/api/v1"
+HTTP_UA = "ComfyUI-Studio/1.0 (+local model manager)"
+
+# 架构识别：按 baseModel / 模型名 / 文件名依次匹配，先命中先返回
+ARCH_RULES = (
+    ("illustrious", "Illustrious"),
+    ("noobai", "Illustrious"),
+    ("anima", "Anima"),
+    ("pony", "Pony"),
+    ("flux", "Flux"),
+    ("sdxl", "SDXL"),
+    ("sd 1.5", "SD1.5"),
+    ("sd1.5", "SD1.5"),
+    ("sd 2", "SD1.5"),
+)
+
+
+def guess_arch(*texts) -> str:
+    low = " ".join(str(t) for t in texts if t).lower()
+    for keyword, name in ARCH_RULES:
+        if keyword in low:
+            return name
+    return ""
+
+
+def sanitize_name(name: str) -> str:
+    name = str(name or "").strip()
+    for ch in '\\/:*?"<>|':
+        name = name.replace(ch, "_")
+    return name.strip(". ") or "model"
+
+
+def sha256_file(path: Path) -> str:
+    h = sha256()
+    with open(path, "rb") as fp:
+        for chunk in iter(lambda: fp.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+class TaskStore:
+    """后台任务表。只留最近 5 分钟内的完成态，避免长时间跑之后内存里堆一堆。"""
+
+    def __init__(self):
+        self.tasks: dict[str, dict] = {}
+
+    def create(self, kind: str, total: int = 0) -> str:
+        now = time.time()
+        self.tasks = {
+            k: v
+            for k, v in self.tasks.items()
+            if v.get("running") or now - v.get("_ts", 0) < 300
+        }
+        task_id = f"{kind}-{int(now * 1000)}"
+        self.tasks[task_id] = {
+            "task_id": task_id,
+            "kind": kind,
+            "running": True,
+            "total": total,
+            "done": 0,
+            "current": "",
+            "ok": 0,
+            "failed": 0,
+            "skipped": 0,
+            "results": [],
+            "_ts": now,
+        }
+        return task_id
+
+    def get(self, task_id: str):
+        return self.tasks.get(task_id)
+
+    def finish(self, task_id: str):
+        task = self.tasks.get(task_id)
+        if task:
+            task["running"] = False
+            task["current"] = ""
+            task["_ts"] = time.time()
+
+
+TASKS = TaskStore()
+
+# Civitai API Key：设置页存进 model-config.json 顶层 settings（见 /cs/save_setting），
+# 各请求进来时若带了 key 则同步进内存，落盘与内存以配置文件为准。
+CIVITAI_API_KEY = ""
+
+
+def set_civitai_key(key):
+    global CIVITAI_API_KEY
+    CIVITAI_API_KEY = str(key or "").strip()
+
+
+def get_civitai_key() -> str:
+    global CIVITAI_API_KEY
+    stored = str(CFG_MANAGER.settings.get("civitai_api_key", "") or "")
+    if stored and stored != CIVITAI_API_KEY:
+        CIVITAI_API_KEY = stored
+    return CIVITAI_API_KEY
+
+
+def civitai_headers() -> dict:
+    headers = {"User-Agent": HTTP_UA}
+    if get_civitai_key():
+        headers["Authorization"] = f"Bearer {get_civitai_key()}"
+    return headers
+
+
+# 说明：下面所有 aiohttp.ClientSession 都带 trust_env=True，
+# 这样 HTTP_PROXY / HTTPS_PROXY / ALL_PROXY 环境变量会被自动采用
+# （国内直连 civitai.com 通常连不通，走代理是常规做法）。
+
+
+async def civitai_get(path: str, params: dict = None):
+    """查 Civitai。404 返回 None（没这个模型），其它非 200 抛错。"""
+    url = f"{CIVITAI_API}/{path.lstrip('/')}"
+    if params:
+        url += "?" + urllib.parse.urlencode(params)
+    timeout = aiohttp.ClientTimeout(total=30)
+    async with aiohttp.ClientSession(timeout=timeout, headers=civitai_headers(), trust_env=True) as session:
+        async with session.get(url) as resp:
+            if resp.status == 404:
+                return None
+            if resp.status != 200:
+                raise RuntimeError(f"civitai HTTP {resp.status}")
+            return await resp.json()
+
+
+async def download_bytes(url: str) -> bytes:
+    if not url:
+        return b""
+    timeout = aiohttp.ClientTimeout(total=120)
+    async with aiohttp.ClientSession(timeout=timeout, headers=civitai_headers(), trust_env=True) as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                return b""
+            return await resp.read()
+
+
+async def save_cover(url: str, model_path: Path) -> str:
+    """把 Civitai 预览图落到模型旁边（同名 .png），走临时文件 + 原子替换。"""
+    data = await download_bytes(url)
+    if not data:
+        return ""
+    img_path = model_path.with_suffix(".png")
+    tmp = img_path.with_name(img_path.name + ".tmp")
+    try:
+        tmp.write_bytes(data)
+        os.replace(tmp, img_path)
+    except Exception:
+        try:
+            tmp.unlink()
+        except Exception:
+            pass
+        return ""
+    return img_path.as_posix()
+
+
+async def collect_metadata(mtype: str, mname: str) -> dict:
+    """
+    按文件 SHA256 反查 Civitai，返回要写进 mcfg 的字段。
+    查不到（没网络 / 没这个模型）返回 {}，由调用方决定报什么原因。
+    """
+    model_path = ModelManager.find_model(mtype, mname)
+    if not model_path.exists():
+        return {"_reason": "model_file_missing"}
+    file_hash = await asyncio.to_thread(sha256_file, model_path)
+    version = await civitai_get(f"model-versions/by-hash/{file_hash}")
+    if not version:
+        return {"_reason": "not_found_on_civitai"}
+
+    model = version.get("model") or {}
+    base = version.get("baseModel") or ""
+    model_id = model.get("id") or version.get("modelId")
+    version_id = version.get("id")
+
+    page_url = ""
+    if model_id:
+        page_url = f"https://civitai.com/models/{model_id}"
+        if version_id:
+            page_url += f"?modelVersionId={version_id}"
+
+    # 有没有更新的版本：拿该模型的最新版和当前文件对应的版本比
+    update = None
+    if model_id:
+        try:
+            full = await civitai_get(f"models/{model_id}")
+            versions = (full or {}).get("modelVersions") or []
+            latest = versions[0] if versions else None
+            if latest and latest.get("id") != version_id:
+                update = {
+                    "version": latest.get("name") or "",
+                    "url": f"https://civitai.com/models/{model_id}?modelVersionId={latest.get('id')}",
+                }
+        except Exception:
+            pass
+
+    words = [w for w in (version.get("trainedWords") or []) if isinstance(w, str) and w.strip()]
+    authors = []
+    if words:
+        authors.append(
+            {
+                "name": version.get("name") or model.get("name") or mname,
+                "prompt": ", ".join(words),
+                "tokens": words,
+                "note": base,
+            }
+        )
+
+    images = version.get("images") or []
+    cover_url = ""
+    for img in images:
+        if isinstance(img, dict) and img.get("url"):
+            cover_url = img["url"]
+            break
+
+    return {
+        "arch": guess_arch(base, model.get("name"), mname),
+        "update": update,
+        "prompt_authors": authors,
+        "cover_url": cover_url,
+        "url": page_url,
+        "title": model.get("name") or version.get("name") or "",
+    }
+
+
+def get_or_create_detail(mtype: str, mname: str) -> dict:
+    detail = CFG_MANAGER.get_detail(mtype)
+    mcfg = detail.get(mname)
+    if mcfg is None:
+        mcfg = {"name": mname}
+        detail[mname] = mcfg
+    for key, default in V2_MODEL_FIELDS.items():
+        if key not in mcfg:
+            mcfg[key] = deepcopy(default)
+    return mcfg
+
+
+@server.PromptServer.instance.routes.post("/cs/toggle_lock")
+async def toggle_lock(request: web.Request):
+    body = json.loads(await request.read())
+    mtype = body.get("mtype")
+    mname = body.get("mname")
+    locked = bool(body.get("locked"))
+    if not mtype or not mname:
+        return web.Response(
+            status=200,
+            body=json.dumps({"status": False, "message": "mtype/mname required"}, ensure_ascii=False),
+        )
+    mcfg = get_or_create_detail(mtype, mname)
+    mcfg["locked"] = locked
+    CFG_MANAGER.dump_config()
+    sys.stdout.write(f"ComfyUI-Studio Toggle lock: [{mtype}][{mname}] -> {locked}\n")
+    sys.stdout.flush()
+    return web.Response(status=200, body=json.dumps({"status": True, "locked": locked}))
+
+
+@server.PromptServer.instance.routes.post("/cs/save_prompt")
+async def save_prompt(request: web.Request):
+    """只写传了的那个键：authors -> prompt_authors，prompts -> prompts。"""
+    body = json.loads(await request.read())
+    mtype = body.get("mtype")
+    mname = body.get("mname")
+    if not mtype or not mname:
+        return web.Response(
+            status=200,
+            body=json.dumps({"status": False, "message": "mtype/mname required"}, ensure_ascii=False),
+        )
+    mcfg = get_or_create_detail(mtype, mname)
+    if "authors" in body:
+        mcfg["prompt_authors"] = body.get("authors") or []
+    if "prompts" in body:
+        mcfg["prompts"] = body.get("prompts") or []
+    CFG_MANAGER.dump_config()
+    return web.Response(
+        status=200,
+        body=json.dumps(
+            {
+                "status": True,
+                "prompt_authors": mcfg.get("prompt_authors", []),
+                "prompts": mcfg.get("prompts", []),
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@server.PromptServer.instance.routes.post("/cs/open_folder")
+async def open_folder(request: web.Request):
+    body = json.loads(await request.read())
+    mtype = body.get("mtype")
+    mname = body.get("mname")
+    model_path = ModelManager.find_model(mtype, mname)
+    if not model_path.exists():
+        return web.Response(
+            status=200,
+            body=json.dumps({"status": False, "message": "model not found"}, ensure_ascii=False),
+        )
+    folder = model_path.parent
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(folder.as_posix())  # noqa: S606  (Windows 专用)
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", folder.as_posix()])
+        else:
+            subprocess.Popen(["xdg-open", folder.as_posix()])
+    except Exception as e:
+        return web.Response(
+            status=200, body=json.dumps({"status": False, "message": str(e)}, ensure_ascii=False)
+        )
+    return web.Response(status=200, body=json.dumps({"status": True, "path": folder.as_posix()}))
+
+
+async def run_fetch_metadata(task_id: str, mtype: str, names: list, skip_locked: bool, overwrite_prompts: bool):
+    task = TASKS.get(task_id)
+    try:
+        for name in names:
+            if not task["running"]:
+                break
+            task["current"] = name
+            mcfg = get_or_create_detail(mtype, name)
+
+            if skip_locked and mcfg.get("locked"):
+                task["skipped"] += 1
+                task["done"] += 1
+                task["results"].append({"name": name, "ok": False, "reason": "locked"})
+                continue
+
+            try:
+                meta = await collect_metadata(mtype, name)
+            except Exception as e:
+                task["failed"] += 1
+                task["done"] += 1
+                task["results"].append({"name": name, "ok": False, "reason": f"error: {e}"})
+                continue
+
+            reason = meta.pop("_reason", "")
+            if reason:
+                task["failed"] += 1
+                task["done"] += 1
+                task["results"].append({"name": name, "ok": False, "reason": reason})
+                continue
+
+            mcfg["arch"] = meta.get("arch") or mcfg.get("arch", "")
+            mcfg["update"] = meta.get("update")
+            mcfg["url"] = meta.get("url") or ""
+            # 作者触发词：只有一条都没有时才写，不覆盖用户自己挑过的
+            authors = meta.get("prompt_authors") or []
+            if authors and not mcfg.get("prompt_authors"):
+                mcfg["prompt_authors"] = authors
+            if overwrite_prompts and authors and not mcfg.get("prompts"):
+                mcfg["prompts"] = [
+                    {"id": f"author-{int(time.time())}", "title": authors[0].get("name", ""), "content": authors[0].get("prompt", "")}
+                ]
+
+            cover = ""
+            try:
+                model_path = ModelManager.find_model(mtype, name)
+                if model_path.exists():
+                    cover = await save_cover(meta.get("cover_url", ""), model_path)
+            except Exception:
+                cover = ""
+            if cover:
+                mcfg["cover"] = cover
+
+            CFG_MANAGER.dump_config()
+            task["ok"] += 1
+            task["done"] += 1
+            task["results"].append({"name": name, "ok": True, "reason": cover or "no_cover"})
+            await asyncio.sleep(0)
+    finally:
+        TASKS.finish(task_id)
+
+
+@server.PromptServer.instance.routes.post("/cs/fetch_metadata")
+async def fetch_metadata(request: web.Request):
+    body = json.loads(await request.read())
+    # 只在真的带了 key 时才覆盖，否则单模型更新会把设置页存好的 key 抹掉
+    if body.get("api_key"):
+        set_civitai_key(body.get("api_key"))
+    if not get_civitai_key():
+        return web.Response(
+            status=200,
+            body=json.dumps({"status": False, "message": "civitai api_key required (设置页 C站 API)"}, ensure_ascii=False),
+        )
+    mtype = body.get("mtype")
+    if not mtype:
+        return web.Response(
+            status=200,
+            body=json.dumps({"status": False, "message": "mtype required"}, ensure_ascii=False),
+        )
+    names = body.get("names") or []
+    if isinstance(names, str):
+        names = [names]
+    if not names:
+        names = list(CFG_MANAGER.get_detail(mtype).keys())
+    task_id = TASKS.create("metadata", len(names))
+    asyncio.create_task(
+        run_fetch_metadata(
+            task_id,
+            mtype,
+            names,
+            bool(body.get("skip_locked", True)),
+            bool(body.get("overwrite_prompts", False)),
+        )
+    )
+    return web.Response(
+        status=200, body=json.dumps({"status": True, "task_id": task_id, "total": len(names)})
+    )
+
+
+@server.PromptServer.instance.routes.get("/cs/fetch_metadata_status")
+async def fetch_metadata_status(request: web.Request):
+    task_id = request.query.get("task_id", "")
+    task = TASKS.get(task_id)
+    if not task:
+        return web.Response(
+            status=200,
+            body=json.dumps({"running": False, "message": "unknown task_id"}, ensure_ascii=False),
+        )
+    return web.Response(status=200, body=json.dumps(task, ensure_ascii=False))
+
+
+def parse_download_url(url: str, timeout=30):
+    """返回 (version_id, model_id, direct_url)。三者最多一个非空。"""
+    url = (url or "").strip()
+    if not url:
+        raise RuntimeError("empty url")
+    if url.isdigit():
+        return url, "", ""
+    if "civitai.com" in url:
+        parsed = urllib.parse.urlparse(url)
+        params = urllib.parse.parse_qs(parsed.query)
+        vid = (params.get("modelVersionId") or [""])[0]
+        if vid:
+            return vid, "", ""
+        parts = [p for p in parsed.path.split("/") if p]
+        if "models" in parts:
+            idx = parts.index("models")
+            if len(parts) > idx + 1 and parts[idx + 1].isdigit():
+                return "", parts[idx + 1], ""
+        raise RuntimeError("无法从链接里解析出模型版本")
+    return "", "", url
+
+
+async def run_download(task_id: str, url: str, mtype: str, category: str, name: str, auto_name: bool):
+    task = TASKS.get(task_id)
+    try:
+        version_id, model_id, direct_url = parse_download_url(url)
+        version = None
+        if version_id:
+            version = await civitai_get(f"model-versions/{version_id}")
+        elif model_id:
+            full = await civitai_get(f"models/{model_id}")
+            versions = (full or {}).get("modelVersions") or []
+            if versions:
+                version_id = versions[0].get("id")
+                version = versions[0]
+        if not direct_url and not version_id:
+            raise RuntimeError("找不到可下载的版本")
+
+        roots = [Path(p) for p in ModelManager.get_paths(mtype)]
+        roots = [p for p in roots if p.exists()]
+        if not roots:
+            raise RuntimeError(f"{mtype} 没有可写的模型目录")
+        root = roots[0]
+        target_dir = root.joinpath(sanitize_name(category)) if category else root
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        ext = ".safetensors"
+        if version:
+            files = version.get("files") or []
+            for f in files:
+                fname = f.get("name") or ""
+                if fname:
+                    ext = Path(fname).suffix or ext
+                    break
+            if auto_name:
+                title = (version.get("model") or {}).get("name") or ""
+                if title:
+                    name = title
+        if not name:
+            name = f"model-{version_id or int(time.time())}"
+        if not Path(name).suffix:
+            name += ext
+        target = target_dir.joinpath(sanitize_name(Path(name).stem) + Path(name).suffix)
+
+        dl_url = direct_url or f"https://civitai.com/api/download/models/{version_id}"
+        task["current"] = target.name
+        task["state"] = "downloading"
+        timeout = aiohttp.ClientTimeout(total=None, sock_connect=30, sock_read=180)
+        got = 0
+        tmp = target.with_name(target.name + ".part")
+        async with aiohttp.ClientSession(timeout=timeout, headers=civitai_headers(), trust_env=True) as session:
+            async with session.get(dl_url) as resp:
+                if resp.status != 200:
+                    raise RuntimeError(f"下载失败 HTTP {resp.status}")
+                total = int(resp.headers.get("Content-Length") or 0)
+                task["total_bytes"] = total
+                with open(tmp, "wb") as fp:
+                    async for chunk in resp.content.iter_chunked(256 * 1024):
+                        fp.write(chunk)
+                        got += len(chunk)
+                        task["got_bytes"] = got
+                        task["percent"] = round(got * 100 / total, 2) if total else 0
+        os.replace(tmp, target)
+
+        task["state"] = "metadata"
+        rel_name = target.relative_to(root).as_posix()
+        try:
+            meta = await collect_metadata(mtype, rel_name)
+        except Exception as e:
+            meta = {"_reason": str(e)}
+        meta.pop("_reason", None)
+        mcfg = get_or_create_detail(mtype, rel_name)
+        if meta:
+            mcfg["arch"] = meta.get("arch") or ""
+            mcfg["update"] = meta.get("update")
+            mcfg["url"] = meta.get("url") or ""
+            if meta.get("prompt_authors"):
+                mcfg["prompt_authors"] = meta["prompt_authors"]
+            cover = await save_cover(meta.get("cover_url", ""), target)
+            if cover:
+                mcfg["cover"] = cover
+        CFG_MANAGER.dump_config()
+
+        task["ok"] = 1
+        task["done"] = 1
+        task["state"] = "done"
+        task["current"] = rel_name
+        task["results"].append({"name": rel_name, "ok": True})
+    except Exception as e:
+        task["failed"] = 1
+        task["done"] = 1
+        task["state"] = "failed"
+        task["message"] = str(e)
+        task["results"].append({"name": name, "ok": False, "reason": str(e)})
+    finally:
+        TASKS.finish(task_id)
+
+
+@server.PromptServer.instance.routes.post("/cs/download_model")
+async def download_model(request: web.Request):
+    body = json.loads(await request.read())
+    if body.get("api_key"):
+        set_civitai_key(body.get("api_key"))
+    if not get_civitai_key():
+        return web.Response(
+            status=200,
+            body=json.dumps({"status": False, "message": "civitai api_key required (设置页 C站 API)"}, ensure_ascii=False),
+        )
+    url = body.get("url") or ""
+    if not url:
+        return web.Response(
+            status=200,
+            body=json.dumps({"status": False, "message": "url required"}, ensure_ascii=False),
+        )
+    mtype = body.get("mtype") or "loras"
+    task_id = TASKS.create("download", 1)
+    t = TASKS.get(task_id)
+    t.update({"state": "pending", "percent": 0, "total_bytes": 0, "got_bytes": 0, "message": ""})
+    asyncio.create_task(
+        run_download(
+            task_id,
+            url,
+            mtype,
+            body.get("category") or "",
+            body.get("name") or "",
+            bool(body.get("auto_name", True)),
+        )
+    )
+    return web.Response(status=200, body=json.dumps({"status": True, "task_id": task_id}))
+
+
+@server.PromptServer.instance.routes.get("/cs/download_status")
+async def download_status(request: web.Request):
+    task_id = request.query.get("task_id", "")
+    task = TASKS.get(task_id)
+    if not task:
+        return web.Response(
+            status=200,
+            body=json.dumps({"running": False, "state": "failed", "message": "unknown task_id"}, ensure_ascii=False),
+        )
+    return web.Response(status=200, body=json.dumps(task, ensure_ascii=False))
 
 
 def thumbnail_exists(path):

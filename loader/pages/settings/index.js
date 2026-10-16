@@ -1,18 +1,21 @@
 import Language from "../../components/settings/language/index.js";
 import Shortcut from "../../components/settings/shortcut/index.js";
-import ModelShield from "../../components/settings/modelShielding/index.js";
-import windowing from "../../components/settings/windowing/index.js";
+import Civitai from "../../components/settings/civitai/index.js";
 
 export default {
   name: "Settings",
   components: {
     Language,
     Shortcut,
-    ModelShield,
-    windowing,
+    Civitai,
   },
   data() {
     return {};
+  },
+  // 进入设置页时把存在插件配置文件里的 C站 Key 拉进内存
+  // （含 localStorage 旧值一次性迁移），面板状态才有数据可回显
+  created() {
+    this.$store.commit("config/loadCivitai");
   },
   methods: {},
   template: `<div class="settings_page">
@@ -20,8 +23,7 @@ export default {
                 <div class="content">
                   <Language />
                   <Shortcut />
-                  <ModelShield />
-                  <windowing />
+                  <Civitai />
                 </div>
               </div>
               <div class="foot"></div>

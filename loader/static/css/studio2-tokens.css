@@ -1,0 +1,42 @@
+/*
+ * ComfyUI-Studio 模型管理面板 —— 设计 token
+ *
+ * 这个文件只放 CSS 变量，不放任何具体规则。
+ * 作用域挂在 .loader_page 上，所以不会漏到设置页和左侧导航栏之外。
+ *
+ * 取值一律来自插件原版 static/css/index.css 与各组件 index.css（HEAD 版）：
+ *   底 #1f1f1f / 面板 #262626 / 按钮 #383838 / 描边 #3d3d3d
+ *   强调蓝 #2a82e4 / 强调黄 #ffc300 / 悬停 #4d4d4d
+ *   文字 #ffffff / 次级 #c4c4c4 / 弱化 #808080
+ * 想整体换色，只改这里。
+ */
+
+body .loader_page {
+  --s2-bg: #1f1f1f;
+  --s2-panel: #262626;
+  --s2-card: #383838;
+  --s2-card-2: #4d4d4d;
+  --s2-inset: #1f1f1f;
+  --s2-line: #3d3d3d;
+  --s2-line-2: #4d4d4d;
+  --s2-cyan: #2a82e4;
+  --s2-cyan-glow: rgba(42, 130, 228, 0.18);
+  --s2-teal: #00baad;
+  --s2-blue: #2a82e4;
+  --s2-blue-hi: #1f6fd0;
+  --s2-warn: #ffc300;
+  --s2-tx: #ffffff;
+  --s2-tx-2: #c4c4c4;
+  --s2-tx-3: #808080;
+  --s2-r-xs: 0.3vw;
+  --s2-r-sm: 0.3vw;
+  --s2-r-md: 0.5vw;
+  --s2-r-btn: 0.4vw;
+
+  /* 等级色：与 static/js/public.js 的 getLevelInf 保持一致，改这里没用，那边也会写内联色 */
+  --s2-lv-s: #ff5733;
+  --s2-lv-a: #7948ea;
+  --s2-lv-b: #2a82e4;
+  --s2-lv-c: #43cf7c;
+  --s2-lv-d: #808080;
+}
