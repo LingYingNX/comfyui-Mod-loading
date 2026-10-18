@@ -95,26 +95,30 @@ body .loader_page .home_page .content .model_display .model_detail .name_input s
   color: var(--s2-cyan);
 }
 
-/* ── 等级条：固定宽 2.8vw 的 5 格 → 等分 5 格，选中用等级色 ─ */
+/* ── 等级条：五格等宽铺满，保持 4:3 与统一间距 ─ */
 body .loader_page .home_page .content .model_display .model_detail .level_group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   background: var(--s2-inset);
   border: 0.042vw solid var(--s2-line);
   border-radius: var(--s2-r-sm); /* 6px */
   padding: 0.25vw; /* 6px */
-  gap: 0.25vw; /* 6px */
+  gap: 0.25vw;
 }
 
 body .loader_page .home_page .content .model_display .model_detail .level_group .level_item {
-  flex: 1;
+  flex: 1 1 0;
   width: auto;
   min-width: 0;
-  height: 0.833vw; /* 20px */
+  aspect-ratio: 4 / 3;
+  height: auto;
   margin: 0; /* 由 .level_group 的 gap 统一控距 */
   background: var(--s2-card);
   border: 0.042vw solid var(--s2-line);
   border-radius: var(--s2-r-xs); /* 4px */
   color: var(--s2-tx-2);
-  font-size: 0.8rem; /* 11px */
+  font-size: 1.6rem;
   font-weight: 600;
 }
 
@@ -128,18 +132,20 @@ body .loader_page .home_page .content .model_display .model_detail .level_group 
 /* ── 页签：激活态白字 + 底部 2px 青色下划线 ─────────────── */
 body .loader_page .home_page .content .model_display .model_detail .menu_tab {
   border-bottom: 0.042vw solid var(--s2-line); /* 1px */
-  padding: 0 0.583vw; /* 14px */
-  margin: 0.417vw 0 0.167vw; /* 10px 0 4px */
-  gap: 0.667vw; /* 16px */
+  padding: 0;
+  margin: 0.5vw 0 0.2vw;
+  gap: 0.4vw;
 }
 
 body .loader_page .home_page .content .model_display .model_detail .menu_tab .menu_item {
   position: relative;
-  padding: 0.333vw 0; /* 8px */
+  padding: 0.45vw 0;
   margin: 0; /* 间距交给 .menu_tab 的 gap */
   color: var(--s2-tx-2);
-  font-size: 0.8rem; /* 12px */
+  font-size: 1.5rem;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* 旧产物给中间项单独加的 1vw 外边距，与 gap 叠加会不齐，归零 */

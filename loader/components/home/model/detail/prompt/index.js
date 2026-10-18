@@ -32,58 +32,61 @@ function makeSetId() {
   return "set-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+function normalizeAuthor(item) {
+  const raw = item && typeof item === "object" ? item : {};
+  return {
+    title: String(raw.name ?? raw.title ?? ""),
+    content: String(raw.prompt ?? raw.content ?? ""),
+    note: raw.note || "",
+    raw,
+  };
+}
+
+function toAuthorPayload(authors) {
+  return authors.map(({ title, content, raw }) => {
+    const item = Object.assign({}, raw || {});
+    item.name = title || "";
+    item.prompt = content || "";
+    if (Object.prototype.hasOwnProperty.call(item, "title")) item.title = title || "";
+    if (Object.prototype.hasOwnProperty.call(item, "content")) item.content = content || "";
+    return item;
+  });
+}
+
 export default {
   name: "PromptStudio",
   props: ["model"],
   data() {
     return {
       tab: "author",
+      authors: [],
       sets: [],
-      folded: {},
     };
-  },
-  computed: {
-    authors() {
-      const list = this.model && this.model.prompt_authors;
-      return Array.isArray(list) ? list : [];
-    },
-    // SPEC 7.3 规定的胶囊标题拼接（"套"字是 SPEC 原文，见交付说明）
-    authorTabLabel() {
-      return this.$t("home.modelDetail.prompt.authorTabCount") + " (" + this.authors.length + "套)";
-    },
-    customTabLabel() {
-      return this.$t("home.modelDetail.prompt.customTabCount") + " (" + this.sets.length + ")";
-    },
   },
   watch: {
     // 浅 watch：只有切换模型（对象引用变化）才重建本地副本。
-    // 不用 deep，否则自己写回 model.prompts 时会把编辑中的副本和折叠状态冲掉。
     model: {
       handler() {
-        this.loadSets();
+        this.loadPrompts();
       },
       immediate: true,
     },
   },
   methods: {
-    loadSets() {
-      const raw = this.model && this.model.prompts;
-      this.sets = (Array.isArray(raw) ? raw : []).map((item) => ({
+    loadPrompts() {
+      const authorRaw = this.model && this.model.prompt_authors;
+      this.authors = (Array.isArray(authorRaw) ? authorRaw : []).map(normalizeAuthor);
+
+      const customRaw = this.model && this.model.prompts;
+      this.sets = (Array.isArray(customRaw) ? customRaw : []).map((item) => ({
         id: (item && item.id) || makeSetId(),
         title: (item && item.title) || "",
         content: (item && item.content) || "",
       }));
       this.tab = "author";
-      this.folded = {};
     },
     switchTab(tab) {
       this.tab = tab === "custom" ? "custom" : "author";
-    },
-    isFolded(id) {
-      return !!this.folded[id];
-    },
-    toggleFold(id) {
-      this.$set(this.folded, id, !this.folded[id]);
     },
     // 一键复制 / 点单个 token：先试 clipboard API，失败退回 execCommand
     // （loader 在 iframe 里，clipboard 权限可能不足）
@@ -148,6 +151,17 @@ export default {
         this.$set(this.model, "prompts", snapshot);
       }
     },
+    async saveAuthors() {
+      if (!this.model) return;
+      const snapshot = JSON.parse(JSON.stringify(this.authors));
+      const payload = toAuthorPayload(this.authors);
+      this.$set(this.model, "prompt_authors", payload);
+      const ok = await this.postSave({ authors: payload });
+      if (!ok) {
+        this.authors = snapshot;
+        this.$set(this.model, "prompt_authors", snapshot.map((item) => item.raw || item));
+      }
+    },
     async postSave(extra) {
       const mtype =
         (this.model && this.model.mtype) ||
@@ -177,46 +191,39 @@ export default {
   },
   template: `
     <div class="prompt-studio-wrapper">
-      <div class="capsule-nav-container">
-        <div class="capsule-group">
-          <div class="capsule-pill" :class="{ active: tab === 'author' }" @click="switchTab('author')">
-            <svg class="s2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.7 5.7 1.9-5.7 1.9L12 18.2l-1.9-5.7L4.4 10.6l5.7-1.9z"/></svg>
-            <span>{{ authorTabLabel }}</span>
-          </div>
-          <div class="capsule-pill" :class="{ active: tab === 'custom' }" @click="switchTab('custom')">
-            <svg class="s2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            <span>{{ customTabLabel }}</span>
-          </div>
-        </div>
-        <button v-if="tab === 'custom'" type="button" class="btn-create-custom" @click="addSet">
-          <svg class="s2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          <span>{{ $t('home.modelDetail.prompt.createSet') }}</span>
+      <div class="prompt-tabs" role="tablist">
+        <button type="button" role="tab" class="prompt-tab" :class="{ active: tab === 'author' }" :aria-selected="tab === 'author'" aria-controls="prompt-panel-author" @click="switchTab('author')">
+          <span>{{ $t('home.modelDetail.prompt.authorTabCount') }}</span>
+          <span class="prompt-tab-count">{{ authors.length }}</span>
+        </button>
+        <button type="button" role="tab" class="prompt-tab" :class="{ active: tab === 'custom' }" :aria-selected="tab === 'custom'" aria-controls="prompt-panel-custom" @click="switchTab('custom')">
+          <span>{{ $t('home.modelDetail.prompt.customTabCount') }}</span>
+          <span class="prompt-tab-count">{{ sets.length }}</span>
         </button>
       </div>
 
-      <div v-if="tab === 'author'" class="cards-vertical-scroll">
+      <div v-if="tab === 'author'" id="prompt-panel-author" role="tabpanel" class="cards-vertical-scroll">
         <div v-if="authors.length === 0" class="prompt-empty">{{ $t('home.modelDetail.prompt.noAuthor') }}</div>
         <div v-for="(item, index) in authors" :key="'author-' + index" class="outfit-vcard">
           <div class="outfit-vcard-header">
             <div class="outfit-vcard-title">
-              <span class="outfit-title-text" :title="item.name">{{ item.name }}</span>
+              <input class="title-input-edit" type="text" v-model="item.title" :placeholder="$t('home.modelDetail.prompt.setTitle')" @blur="saveAuthors" @keydown.enter.prevent="saveAuthors" />
               <span v-if="item.note" class="outfit-weight-chip">{{ item.note }}</span>
             </div>
-            <button type="button" class="btn-copy-action" @click="copyText(item.prompt)">
-              <svg class="s2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-              <span>{{ $t('home.modelDetail.prompt.copyOne') }}</span>
-            </button>
+            <div class="outfit-header-actions">
+              <button type="button" class="btn-copy-action" @click="copyText(item.content)">
+                <svg class="s2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>{{ $t('home.modelDetail.prompt.copyOne') }}</span>
+              </button>
+            </div>
           </div>
           <div class="outfit-vcard-body">
-            <div class="tokens-tip">{{ $t('home.modelDetail.prompt.tokensTip') }}</div>
-            <div v-if="item.tokens && item.tokens.length" class="tokens-tag-box">
-              <span v-for="(token, ti) in item.tokens" :key="'token-' + index + '-' + ti" class="token-chip" :title="token" @click="copyText(token)">{{ token }}</span>
-            </div>
+            <textarea class="prompt-textarea-custom" v-model="item.content" :placeholder="$t('home.modelDetail.prompt.placeholder')" @blur="saveAuthors"></textarea>
           </div>
         </div>
       </div>
 
-      <div v-else class="cards-vertical-scroll">
+      <div v-else id="prompt-panel-custom" role="tabpanel" class="cards-vertical-scroll">
         <div v-if="sets.length === 0" class="prompt-empty">{{ $t('home.modelDetail.prompt.noCustom') }}</div>
         <div v-for="item in sets" :key="item.id" class="outfit-vcard">
           <div class="outfit-vcard-header">
@@ -235,23 +242,13 @@ export default {
             </div>
           </div>
           <div class="outfit-vcard-body">
-            <div class="foldable-container" :class="{ collapsed: isFolded(item.id) }">
-              <div class="foldable-header" @click="toggleFold(item.id)">
-                <div class="triangle-btn">
-                  <span class="triangle-icon"><svg class="s2-icon" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8 0 0h12z"/></svg></span>
-                  <span>{{ $t('home.modelDetail.prompt.contentLabel') }}</span>
-                </div>
-                <span class="badge-protected">
-                  <svg class="s2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.5 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
-                  {{ $t('home.modelDetail.prompt.protected') }}
-                </span>
-              </div>
-              <div class="foldable-content">
-                <textarea class="prompt-textarea-custom" v-model="item.content" :placeholder="$t('home.modelDetail.prompt.placeholder')" @blur="saveSet"></textarea>
-              </div>
-            </div>
+            <textarea class="prompt-textarea-custom" v-model="item.content" :placeholder="$t('home.modelDetail.prompt.placeholder')" @blur="saveSet"></textarea>
           </div>
         </div>
+        <button type="button" class="add-set-row" @click="addSet">
+          <svg class="s2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span>{{ $t('home.modelDetail.prompt.createSet') }}</span>
+        </button>
       </div>
     </div>
   `,

@@ -12,12 +12,19 @@
  */
 
 /* ---------- 标题 / 搜索框 / 分隔块 ---------- */
+body .loader_page .home_page .content .head .left {
+  gap: 0.5vw;
+}
+
 body .loader_page .home_page .content .head .left .title {
   color: var(--s2-tx);
 }
 
 body .loader_page .home_page .content .head .left .search {
   box-sizing: border-box;
+  height: 1.9vw;
+  min-height: 34px;
+  margin: 0;
   background: var(--s2-card);
   border: 1px solid var(--s2-line);
   border-radius: var(--s2-r-sm);
@@ -49,16 +56,36 @@ body .loader_page .home_page .content .head .left .search span:hover em {
 }
 
 body .loader_page .home_page .content .head .left .block {
+  flex: 0 0 auto;
+  height: 1.2vw;
+  margin: 0;
   background: var(--s2-line);
 }
 
 /* ---------- 三个 HoverMenu（排序 / 等级 / 列数） ---------- */
 body .loader_page .home_page .content .head .left .hover_menu {
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 1.9vw;
+  min-height: 34px;
+  padding: 0 0.9vw;
+  margin: 0;
   background: var(--s2-card);
   border: 1px solid var(--s2-line);
   border-radius: var(--s2-r-btn, var(--s2-r-sm));
   color: var(--s2-tx-2);
+  font-weight: 600;
+}
+
+body .loader_page .home_page .content .head .left .hover_menu .default_value {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+body .loader_page .home_page .content .head .left .space {
+  margin: 0;
 }
 
 body .loader_page .home_page .content .head .left .hover_menu:hover {
@@ -67,7 +94,12 @@ body .loader_page .home_page .content .head .left .hover_menu:hover {
   color: var(--s2-cyan);
 }
 
-body .loader_page .home_page .content .head .left .hover_menu ul,
+body .loader_page .home_page .content .head .left .hover_menu ul {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 body .loader_page .home_page .content .head .left .hover_menu:hover ul {
   background: var(--s2-panel);
   border: 1px solid var(--s2-line);
@@ -92,6 +124,10 @@ body .loader_page .home_page .content .head .left .hover_menu:not(:has(em)) {
 /* ---------- 一键获取元数据（原版 .render_button：灰底白字，hover 蓝底） ---------- */
 body .loader_page .home_page .content .head .left .render_button {
   box-sizing: border-box;
+  height: 1.9vw;
+  min-height: 34px;
+  padding: 0 0.9vw;
+  margin: 0;
   background: #383838;
   color: #ffffff;
   border: none;
@@ -125,6 +161,7 @@ body .loader_page .home_page .content .head .left .arch_btn {
   color: var(--s2-tx-2);
   font-size: 0.8rem;
   height: 1.9vw;
+  min-height: 34px;
   padding: 0 0.5vw;
   cursor: pointer;
   transition: background 0.3s, border-color 0.3s, color 0.3s;
