@@ -1,3 +1,5 @@
+import { getApi } from "../../static/js/api.js";
+
 /**
  * 下载弹窗 —— 模型卡片网格尾部那张「下载新模型」卡点开的窗口。
  *
@@ -22,12 +24,6 @@ if (!document.querySelector('link[href*="public/downloadModal.css"]')) {
 
 const SVG_CLOSE =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-
-function getApi() {
-  const api = window.comfyAPI?.api?.api || window.parent?.comfyAPI?.api?.api;
-  api.api_base = "";
-  return api;
-}
 
 export default {
   name: "DownloadModal",

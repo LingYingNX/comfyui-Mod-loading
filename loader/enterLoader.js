@@ -1,6 +1,7 @@
 import { app } from "../../../../scripts/app.js";
 import BluePrints from "./blueprints.js";
 import IconRenderer from "./components/public/iconRenderer.js";
+import { DEFAULT_WIDGET_TYPES } from "./static/js/public.js";
 function getPage() {
   return document.getElementById("loader_iframe");
 }
@@ -107,18 +108,7 @@ function popUpReg() {
         if (!delta) {
           // combo clicked
           // console.error(node.title, node.constructor.type, w.name, event.type);
-          const default_name2type = {
-            ckpt_name: "checkpoints",
-            vae_name: "vae",
-            clip_name: "clip",
-            gligen_name: "gligen",
-            control_net_name: "controlnet",
-            lora_name: "loras",
-            style_model_name: "style_models",
-            hypernetwork_name: "hypernetworks",
-            unet_name: "unets",
-          };
-          if (node.CSnative || default_name2type[w.name]) {
+          if (node.CSnative || DEFAULT_WIDGET_TYPES[w.name]) {
             let page = loadPage();
             page.style.display = "block";
             window.CSvm.node = node;
@@ -149,18 +139,7 @@ function popUpReg() {
       if (!w || w.disabled || w.type !== "combo") {
         return fff ? fff.call(this, event) : false;
       }
-      const default_name2type = {
-        ckpt_name: "checkpoints",
-        vae_name: "vae",
-        clip_name: "clip",
-        gligen_name: "gligen",
-        control_net_name: "controlnet",
-        lora_name: "loras",
-        style_model_name: "style_models",
-        hypernetwork_name: "hypernetworks",
-        unet_name: "unets",
-      };
-      if (node.CSnative || default_name2type[w.name]) {
+      if (node.CSnative || DEFAULT_WIDGET_TYPES[w.name]) {
         let page = loadPage();
         page.style.display = "block";
         window.CSvm.node = node;

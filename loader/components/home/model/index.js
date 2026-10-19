@@ -2,13 +2,8 @@ import ModelList from "./list/index.js";
 import ModelDetail from "./detail/index.js";
 import DownloadModal from "../../public/downloadModal.js";
 import { KNOWN_ARCHS, ARCH_OTHER } from "../../../static/js/public.js";
+import { getApi } from "../../../static/js/api.js";
 // import { api } from "/scripts/api.js";
-
-function getApi() {
-  const api = window.comfyAPI?.api?.api || window.parent.comfyAPI?.api?.api;
-  api.api_base = "";
-  return api;
-}
 
 async function update_config(model, key, old_data, cb = (resp) => {}) {
   try {

@@ -224,17 +224,12 @@ const message = {
           },
         },
         prompt: {
-          authorTab: "作者提示词",
-          customTab: "自定义提示词",
           authorTabCount: "作者提示词",
           customTabCount: "自定义提示词",
           createSet: "追加一套提示词",
           copyOne: "一键复制",
           copyDone: "已复制",
-          tokensTip: "作者提供触发词（点击单独复制）",
           setTitle: "提示词标题",
-          contentLabel: "自定义提示词内容",
-          protected: "防覆盖保护",
           deleteSet: "删除此套件",
           noAuthor: "该作者没有提供提示词，可切到「自定义提示词」自己写",
           noCustom: "还没有自定义提示词，点下方「＋」添加",
@@ -252,29 +247,6 @@ const message = {
       shortcut: {
         title: "模型菜单快捷键",
         describe: "设置模型菜单快捷键，让操作更加快捷",
-      },
-      modelShield: {
-        title: "模型屏蔽",
-        describe: "你可以决定有一些模型不在特定加载器中显示和进行缩略图渲染(这仅对支持的加载器有用)",
-        loaderName: "加载器名称",
-        shieldingModel: "屏蔽模型",
-        blockInputBoxText: "请输入需要屏蔽的模型文件完整名称(如a.ckpt)",
-        confirmText: "确认",
-        cancelText: "取消",
-      },
-      window: {
-        title: "个性化设置",
-        describe: "选择自定义窗口显示方式",
-        list: [
-          {
-            name: "全屏",
-            value: "full",
-          },
-          {
-            name: "窗口化",
-            value: "noFull",
-          },
-        ],
       },
       civitai: {
         title: "C站 API",
@@ -530,17 +502,12 @@ const message = {
           },
         },
         prompt: {
-          authorTab: "Author prompts",
-          customTab: "Custom prompts",
           authorTabCount: "Author prompts",
           customTabCount: "Custom prompts",
           createSet: "Add prompt set",
           copyOne: "Copy",
           copyDone: "Copied",
-          tokensTip: "Trigger words from the author (click one to copy)",
           setTitle: "Prompt title",
-          contentLabel: "Custom prompt content",
-          protected: "Overwrite protected",
           deleteSet: "Delete this preset",
           noAuthor: "The author provided no prompts. Switch to \"Custom prompts\" to write your own.",
           noCustom: "No custom prompts yet. Click the + button below to add one.",
@@ -558,29 +525,6 @@ const message = {
       shortcut: {
         title: "Model Menu Shortcut Key",
         describe: "Set the shortcut key for the model menu",
-      },
-      modelShield: {
-        title: "Model shielding",
-        describe: "You can decide that some models are no longer displayed and thumbnail rendered in specific loaders (this is only useful for supported loaders)",
-        loaderName: "Loader Name",
-        shieldingModel: "Shielding model",
-        blockInputBoxText: "The complete name of the blocked model file(such as a.ckpt)",
-        confirmText: "Confirm",
-        cancelText: "Cancel",
-      },
-      window: {
-        title: "Personalized settings",
-        describe: "Choose custom window display method",
-        list: [
-          {
-            name: "Full screen",
-            value: "full",
-          },
-          {
-            name: "Windowing",
-            value: "noFull",
-          },
-        ],
       },
       civitai: {
         title: "Civitai API",
@@ -837,17 +781,12 @@ const message = {
           },
         },
         prompt: {
-          authorTab: "作者提示詞",
-          customTab: "自定義提示詞",
           authorTabCount: "作者提示詞",
           customTabCount: "自定義提示詞",
           createSet: "追加一套提示詞",
           copyOne: "一鍵復製",
           copyDone: "已復製",
-          tokensTip: "作者提供觸發詞（點擊單獨復製）",
           setTitle: "提示詞標題",
-          contentLabel: "自定義提示詞內容",
-          protected: "防覆蓋保護",
           deleteSet: "刪除此套件",
           noAuthor: "該作者沒有提供提示詞，可切到「自定義提示詞」自己寫",
           noCustom: "還沒有自定義提示詞，點下方「＋」添加",
@@ -865,29 +804,6 @@ const message = {
       shortcut: {
         title: "快捷鍵設置",
         describe: "设置模型菜单快捷键，讓操作更加快捷",
-      },
-      modelShield: {
-        title: "模型屏蔽",
-        describe: "你可以決定有一些模型不在特定加載器中顯示和進行縮略圖渲染(這僅對支持的加載器有用)",
-        loaderName: "加載器名稱",
-        shieldingModel: "屏蔽模型",
-        blockInputBoxText: "請輸入需要屏蔽的模型文件完整名稱(如a.ckpt)",
-        confirmText: "確認",
-        cancelText: "取消",
-      },
-      window: {
-        title: "个性化設置",
-        describe: "選擇自定義窗口顯示方式",
-        list: [
-          {
-            name: "全屏",
-            value: "full",
-          },
-          {
-            name: "窗口化",
-            value: "noFull",
-          },
-        ],
       },
       civitai: {
         title: "C站 API",

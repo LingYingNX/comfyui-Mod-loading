@@ -1,4 +1,5 @@
 import { getLevelInf } from "../../../../static/js/public.js";
+import { getApi } from "../../../../static/js/api.js";
 
 // 内联 SVG（禁止 emoji / 禁止 iconfont 硬凑）
 const SVG_LOCKED =
@@ -28,13 +29,6 @@ const ICON_FOLDER = window.CSContextMenu?.ICONS?.folder || svgFolder();
 const ICON_LOCK = window.CSContextMenu?.ICONS?.lock || SVG_LOCKED;
 const ICON_REFRESH = window.CSContextMenu?.ICONS?.refresh || svgRefresh();
 
-function getApi() {
-  const api = window.comfyAPI?.api?.api || window.parent?.comfyAPI?.api?.api;
-  api.api_base = "";
-  return api;
-}
-
-// 与 components/home/model/index.js:5-9 保持一致的取 api 方式（那边没导出，这里复制一份）
 async function csPost(path, body) {
   const resp = await getApi().fetchApi(path, {
     method: "POST",

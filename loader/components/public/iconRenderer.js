@@ -1,10 +1,6 @@
-// import { api } from "/scripts/api.js";
+import { getApi } from "../../static/js/api.js";
 
-function getApi() {
-  const api = window.comfyAPI?.api?.api || window.parent.comfyAPI?.api?.api;
-  api.api_base = "";
-  return api;
-}
+// import { api } from "/scripts/api.js";
 
 class IconRenderer {
   get rendering() {

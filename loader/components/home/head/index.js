@@ -1,6 +1,7 @@
 import hoverMenu from "../../public/hoverMenu.js";
 import IconRenderer from "../../public/iconRenderer.js";
 import { KNOWN_ARCHS, ARCH_OTHER } from "../../../static/js/public.js";
+import { getApi } from "../../../static/js/api.js";
 // import { app } from "/scripts/app.js";
 
 // 下拉菜单里的架构显示名（键是 static/js/public.js 的 KNOWN_ARCHS 值，与后端 arch 字段一致）
@@ -34,12 +35,6 @@ if (!document.querySelector('link[href*="home/head/studio2.css"]')) {
   css.rel = "stylesheet";
   css.href = "/cs/loader/components/home/head/studio2.css";
   document.head.appendChild(css);
-}
-
-function getApi() {
-  const api = window.comfyAPI?.api?.api || window.parent.comfyAPI?.api?.api;
-  api.api_base = "";
-  return api;
 }
 
 // 后端返回的 V2 字段，批量抓完元数据后按这些键回读贴回卡片

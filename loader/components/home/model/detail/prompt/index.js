@@ -1,3 +1,5 @@
+import { getApi } from "../../../../../static/js/api.js";
+
 /**
  * 提示词工作台（Prompt Studio）
  *
@@ -19,12 +21,6 @@ if (!document.querySelector('link[href*="detail/prompt/index.css"]')) {
   css.href = CSS_HREF;
   css.dataset.promptStudioCss = "1";
   document.head.appendChild(css);
-}
-
-function getApi() {
-  const api = window.comfyAPI?.api?.api || window.parent.comfyAPI?.api?.api;
-  api.api_base = "";
-  return api;
 }
 
 // 新套件 id：时间戳 + 随机串，本地唯一即可

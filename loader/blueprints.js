@@ -1,3 +1,5 @@
+import { DEFAULT_WIDGET_TYPES } from "./static/js/public.js";
+
 /**
  * 两种定义Adapter的方式
  * 1. 简化版: 适用于仅有一种模型的节点
@@ -174,18 +176,7 @@ const IMPL = {
     },
   },
   default_factory: function (widget_name) {
-    const default_name2type = {
-      ckpt_name: "checkpoints",
-      vae_name: "vae",
-      clip_name: "clip",
-      gligen_name: "gligen",
-      control_net_name: "controlnet",
-      lora_name: "loras",
-      style_model_name: "style_models",
-      hypernetwork_name: "hypernetworks",
-      unet_name: "unets",
-    };
-    let type = default_name2type[widget_name];
+    let type = DEFAULT_WIDGET_TYPES[widget_name];
     return {
       type,
       getWidgets: (n) => {

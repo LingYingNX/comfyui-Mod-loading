@@ -67,6 +67,7 @@ body .loader_page .home_page .content .head .left .hover_menu {
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  cursor: pointer;
   height: 1.9vw;
   min-height: 34px;
   padding: 0 0.9vw;
@@ -79,9 +80,16 @@ body .loader_page .home_page .content .head .left .hover_menu {
 }
 
 body .loader_page .home_page .content .head .left .hover_menu .default_value {
+  width: 100%;
   display: flex;
   align-items: center;
   height: 100%;
+  cursor: pointer;
+}
+
+body .loader_page .home_page .content .head .left .hover_menu .default_value em {
+  margin-right: 0.3vw;
+  font-size: 1rem;
 }
 
 body .loader_page .home_page .content .head .left .space {
@@ -95,19 +103,38 @@ body .loader_page .home_page .content .head .left .hover_menu:hover {
 }
 
 body .loader_page .home_page .content .head .left .hover_menu ul {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  max-height: 0;
+  overflow: hidden;
+  transform: translateY(102%);
+  padding: 0.3vw;
+  display: grid;
+  grid-gap: 0.2vw;
+  border-radius: 0.36vw;
   background: transparent;
   border-color: transparent;
   box-shadow: none;
+  transition: max-height 0.3s, background 0.3s;
 }
 
 body .loader_page .home_page .content .head .left .hover_menu:hover ul {
+  max-height: 500px;
   background: var(--s2-panel);
   border: 1px solid var(--s2-line);
   box-shadow: 0 0.42vw 1vw rgba(0, 0, 0, 0.45);
 }
 
 body .loader_page .home_page .content .head .left .hover_menu ul li {
+  padding: 0.2vw 0.8vw;
+  display: flex;
+  justify-content: flex-end;
+  border-radius: 0.3vw;
+  cursor: pointer;
   color: var(--s2-tx-2);
+  white-space: nowrap;
+  transition: background 0.3s;
 }
 
 body .loader_page .home_page .content .head .left .hover_menu ul li:hover {
