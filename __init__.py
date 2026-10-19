@@ -290,6 +290,29 @@ class ThumbnailManager:
         return cls.get_image(path)
 
 
+THUMBNAIL_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+MAX_THUMBNAIL_BYTES = 20 * 1024 * 1024
+
+
+def safe_thumbnail_suffix(filename: str) -> str:
+    suffix = Path(filename or "").suffix.lower()
+    if suffix not in THUMBNAIL_SUFFIXES:
+        raise ValueError("unsupported thumbnail type")
+    return suffix
+
+
+def is_supported_image(data: bytes, suffix: str) -> bool:
+    if suffix == ".png":
+        return data.startswith(b"\x89PNG\r\n\x1a\n")
+    if suffix in {".jpg", ".jpeg"}:
+        return data.startswith(b"\xff\xd8\xff")
+    if suffix == ".gif":
+        return data.startswith((b"GIF87a", b"GIF89a"))
+    if suffix == ".webp":
+        return len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+    return False
+
+
 @server.PromptServer.instance.routes.post("/cs/upload_thumbnail")
 async def upload_thumbnail(request: web.Request):
     post = await request.post()
@@ -305,9 +328,18 @@ async def upload_thumbnail(request: web.Request):
         ret_json["msg"] = "Invalid image"
         return web.Response(status=400, body=json.dumps(ret_json))
     img_name = image.filename
-    if not img_name:
+    if not img_name or not mtype or not mname:
         # 无文件名
-        ret_json["msg"] = "Invalid image name"
+        ret_json["msg"] = "Invalid image name or model"
+        return web.Response(status=400, body=json.dumps(ret_json))
+    try:
+        suffix = safe_thumbnail_suffix(img_name)
+    except ValueError:
+        ret_json["msg"] = "Unsupported thumbnail type"
+        return web.Response(status=400, body=json.dumps(ret_json))
+    data = image.file.read(MAX_THUMBNAIL_BYTES + 1)
+    if len(data) > MAX_THUMBNAIL_BYTES or not is_supported_image(data, suffix):
+        ret_json["msg"] = "Invalid image content"
         return web.Response(status=400, body=json.dumps(ret_json))
     model_path = ModelManager.find_model(mtype, mname)
     if not model_path.exists():
@@ -317,9 +349,9 @@ async def upload_thumbnail(request: web.Request):
     # 移除同名的 .png, .jpg, .jpeg, .gif 缩略图 ?
     # ModelManager.remove_thumbnails(mtype, mname)
     # 保存缩略图到模型所在路径
-    img_path = model_path.with_suffix(Path(img_name).suffix)
+    img_path = model_path.with_suffix(suffix)
     with open(img_path, "wb") as f:
-        f.write(image.file.read())
+        f.write(data)
     # 保存缩略图路径到配置文件
     model_configs = CFG_MANAGER.get_detail(mtype)
     if mname in model_configs:
@@ -382,19 +414,6 @@ async def update_config(request: web.Request):
         mcfg[key] = update_data
     CFG_MANAGER.dump_config()
     return web.Response(status=200, body=json.dumps(ret_json))
-
-
-def find_rel_path(p, model_paths) -> str:
-    """
-    calc the relative path of p in model_paths
-    """
-    if not p:
-        return ""
-    for p in model_paths:
-        if not p.startswith(p):
-            continue
-        return Path(p).relative_to(p).as_posix()
-    return ""
 
 
 def find_tags(string: str, sep="/") -> list[str]:
@@ -1220,6 +1239,35 @@ async def fetch_metadata_status(request: web.Request):
     return web.Response(status=200, body=json.dumps(task, ensure_ascii=False))
 
 
+MAX_DOWNLOAD_BYTES = 64 * 1024**3
+MAX_DOWNLOAD_REDIRECTS = 5
+
+
+def validate_download_url(url: str) -> str:
+    parsed = urllib.parse.urlparse((url or "").strip())
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or parsed.username or parsed.password:
+        raise RuntimeError("下载地址必须使用 HTTPS")
+    if host != "civitai.com" and not host.endswith(".civitai.com"):
+        raise RuntimeError("只允许下载 Civitai 域名")
+    return parsed.geturl()
+
+
+async def get_download_response(session, url: str):
+    current = validate_download_url(url)
+    for _ in range(MAX_DOWNLOAD_REDIRECTS + 1):
+        resp = await session.get(current, allow_redirects=False)
+        if 300 <= resp.status < 400:
+            location = resp.headers.get("Location")
+            resp.release()
+            if not location:
+                raise RuntimeError("下载重定向缺少 Location")
+            current = validate_download_url(urllib.parse.urljoin(current, location))
+            continue
+        return resp
+    raise RuntimeError("下载重定向次数过多")
+
+
 def parse_download_url(url: str, timeout=30):
     """返回 (version_id, model_id, direct_url)。三者最多一个非空。"""
     url = (url or "").strip()
@@ -1244,6 +1292,7 @@ def parse_download_url(url: str, timeout=30):
 
 async def run_download(task_id: str, url: str, mtype: str, category: str, name: str, auto_name: bool):
     task = TASKS.get(task_id)
+    tmp = None
     try:
         version_id, model_id, direct_url = parse_download_url(url)
         version = None
@@ -1284,24 +1333,31 @@ async def run_download(task_id: str, url: str, mtype: str, category: str, name: 
             name += ext
         target = target_dir.joinpath(sanitize_name(Path(name).stem) + Path(name).suffix)
 
-        dl_url = direct_url or f"https://civitai.com/api/download/models/{version_id}"
+        dl_url = validate_download_url(direct_url or f"https://civitai.com/api/download/models/{version_id}")
         task["current"] = target.name
         task["state"] = "downloading"
         timeout = aiohttp.ClientTimeout(total=None, sock_connect=30, sock_read=180)
         got = 0
         tmp = target.with_name(target.name + ".part")
         async with aiohttp.ClientSession(timeout=timeout, headers=civitai_headers(), trust_env=True) as session:
-            async with session.get(dl_url) as resp:
+            resp = await get_download_response(session, dl_url)
+            try:
                 if resp.status != 200:
                     raise RuntimeError(f"下载失败 HTTP {resp.status}")
                 total = int(resp.headers.get("Content-Length") or 0)
+                if total > MAX_DOWNLOAD_BYTES:
+                    raise RuntimeError("下载文件超过体积上限")
                 task["total_bytes"] = total
                 with open(tmp, "wb") as fp:
                     async for chunk in resp.content.iter_chunked(256 * 1024):
                         fp.write(chunk)
                         got += len(chunk)
+                        if got > MAX_DOWNLOAD_BYTES:
+                            raise RuntimeError("下载文件超过体积上限")
                         task["got_bytes"] = got
                         task["percent"] = round(got * 100 / total, 2) if total else 0
+            finally:
+                resp.release()
         os.replace(tmp, target)
 
         task["state"] = "metadata"
@@ -1329,6 +1385,8 @@ async def run_download(task_id: str, url: str, mtype: str, category: str, name: 
         task["current"] = rel_name
         task["results"].append({"name": rel_name, "ok": True})
     except Exception as e:
+        if tmp and tmp.exists():
+            tmp.unlink(missing_ok=True)
         task["failed"] = 1
         task["done"] = 1
         task["state"] = "failed"
