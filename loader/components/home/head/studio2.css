@@ -65,6 +65,7 @@ body .loader_page .home_page .content .head .left .block {
 /* ---------- 三个 HoverMenu（排序 / 等级 / 列数） ---------- */
 body .loader_page .home_page .content .head .left .hover_menu {
   box-sizing: border-box;
+  position: relative;
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -104,6 +105,7 @@ body .loader_page .home_page .content .head .left .hover_menu:hover {
 
 body .loader_page .home_page .content .head .left .hover_menu ul {
   position: absolute;
+  z-index: 60;
   right: 0;
   bottom: 0;
   max-height: 0;
@@ -119,7 +121,8 @@ body .loader_page .home_page .content .head .left .hover_menu ul {
   transition: max-height 0.3s, background 0.3s;
 }
 
-body .loader_page .home_page .content .head .left .hover_menu:hover ul {
+body .loader_page .home_page .content .head .left .hover_menu:hover ul,
+body .loader_page .home_page .content .head .left .hover_menu.open ul {
   max-height: 500px;
   background: var(--s2-panel);
   border: 1px solid var(--s2-line);
