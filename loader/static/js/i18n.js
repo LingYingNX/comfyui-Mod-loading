@@ -88,6 +88,10 @@ const message = {
         downloadCardTip: "点击打开下载与元数据窗口",
         openFolderFailed: "打开本地目录失败",
         fetchFailed: "获取元数据失败",
+        saveFailed: "保存失败",
+        modifyFailed: "修改失败",
+        uploadFailed: "上传缩略图失败",
+        executeFailed: "工作流执行失败，请检查节点报错",
       },
       contextMenu: {
         openSite: "跳转到模型原网站",
@@ -233,6 +237,7 @@ const message = {
       language: {
         title: "UI语言选项",
         describe: "设置UI语言，让沟通无所不能",
+        short: "简",
       },
       shortcut: {
         title: "模型菜单快捷键",
@@ -356,6 +361,10 @@ const message = {
         downloadCardTip: "Open the download and metadata window",
         openFolderFailed: "Failed to open the local folder",
         fetchFailed: "Failed to fetch metadata",
+        saveFailed: "Save failed",
+        modifyFailed: "Rename failed",
+        uploadFailed: "Failed to upload the thumbnail",
+        executeFailed: "Workflow failed — check the node errors",
       },
       contextMenu: {
         openSite: "Open the original model page",
@@ -501,6 +510,7 @@ const message = {
       language: {
         title: "UI Language Options",
         describe: "Set UI language to make communication omnipotent",
+        short: "EN",
       },
       shortcut: {
         title: "Model Menu Shortcut Key",
@@ -624,6 +634,10 @@ const message = {
         downloadCardTip: "點擊打開下載與元數據窗口",
         openFolderFailed: "打開本地目錄失敗",
         fetchFailed: "獲取元數據失敗",
+        saveFailed: "保存失敗",
+        modifyFailed: "修改失敗",
+        uploadFailed: "上傳縮略圖失敗",
+        executeFailed: "工作流程執行失敗，請檢查節點報錯",
       },
       contextMenu: {
         openSite: "跳轉到模型原網站",
@@ -770,6 +784,7 @@ const message = {
       language: {
         title: "UI語言選項",
         describe: "設置UI語言，讓溝通無所不能",
+        short: "繁",
       },
       shortcut: {
         title: "快捷鍵設置",

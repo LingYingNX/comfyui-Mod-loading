@@ -153,9 +153,9 @@ Vue.component("Left", {
                     </li>
                 </ul>
                 <div class="language">
-                  <span v-if="language === 'cn'"  @click="changeLanguage('tc')">简</span>
-                  <span v-if="language === 'tc'"  @click="changeLanguage('en')">繁</span>
-                  <span v-if="language === 'en'"  @click="changeLanguage('cn')">EN</span>
+                  <span v-if="language === 'cn'"  @click="changeLanguage('tc')">{{ $t('settings.language.short') }}</span>
+                  <span v-if="language === 'tc'"  @click="changeLanguage('en')">{{ $t('settings.language.short') }}</span>
+                  <span v-if="language === 'en'"  @click="changeLanguage('cn')">{{ $t('settings.language.short') }}</span>
                 </div>
             </div>`,
 });

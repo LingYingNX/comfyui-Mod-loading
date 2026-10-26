@@ -5,6 +5,16 @@ import { ARCH_OTHER } from "../../../static/js/public.js";
 import { getApi } from "../../../static/js/api.js";
 // import { api } from "/scripts/api.js";
 
+// 模块级函数里没有 Vue 实例，借用 index.html 已注册的全局 $message / $t（见 static/js/message.js）。
+// detail 只进控制台，避免把整段错误塞进气泡。
+function notify(type, key, detail) {
+  const V = typeof Vue !== "undefined" ? Vue.prototype : null;
+  const text = V && V.$t ? V.$t(key) : key;
+  if (V && V.$message) V.$message({ type: type, message: detail ? text + "：" + detail : text });
+  else console.error("[studio] " + text + (detail ? " " + detail : ""));
+  if (detail && V && V.$message) console.error("[studio] " + key + " " + detail);
+}
+
 const V2_MODEL_KEYS = [
   "arch",
   "url",
@@ -46,7 +56,7 @@ async function update_config(model, key, old_data, cb = (resp) => {}) {
     });
     cb(resp);
   } catch (error) {
-    alert(error);
+    notify("error", "home.model.saveFailed", String((error && error.message) || error));
   }
 }
 
@@ -136,7 +146,7 @@ export default {
           let json = await resp.json();
           if (!json.hasOwnProperty("status") || !json.status) {
             model.name = old_data;
-            alert("修改失败");
+            notify("error", "home.model.modifyFailed");
           }
         }
       }
