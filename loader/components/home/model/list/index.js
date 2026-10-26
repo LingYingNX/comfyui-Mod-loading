@@ -75,6 +75,27 @@ export default {
       }
       return [...groups.values()];
     },
+    // 同项目全部版本的索引：按 civitai projectKey 分组并排序。
+    // 卡片模板会为每张卡调用 previewItems 二十多次（选中态 / 预览图 / 标签 …），
+    // 每次都重扫 allList 会退化成 O(卡片数 × 全部模型数)。放进计算属性后由 Vue 缓存，
+    // 只有在 allList / curList 或某个 cover 变化时才重建。
+    previewGroupMap() {
+      const map = new Map();
+      const source = Array.isArray(this.allList) && this.allList.length ? this.allList : this.curList;
+      for (const candidate of source) {
+        if (!candidate?.cover) continue;
+        const key = this.projectKey(candidate);
+        if (!key) continue;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(candidate);
+      }
+      for (const versions of map.values()) {
+        versions.sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || ""), "zh-CN", { numeric: true })
+        );
+      }
+      return map;
+    },
   },
   watch: {
     column() {
@@ -163,14 +184,9 @@ export default {
     previewItems(item) {
       const projectKey = this.projectKey(item);
       if (!projectKey) return item?.cover ? [item] : [];
-      const source = Array.isArray(this.allList) && this.allList.length ? this.allList : this.curList;
-      const versions = source.filter(
-        (candidate) => candidate?.cover && this.projectKey(candidate) === projectKey
-      );
-      if (!versions.length) return item?.cover ? [item] : [];
-      return versions.sort((a, b) =>
-        String(a.name || "").localeCompare(String(b.name || ""), "zh-CN", { numeric: true })
-      );
+      const versions = this.previewGroupMap.get(projectKey);
+      if (!versions || !versions.length) return item?.cover ? [item] : [];
+      return versions;
     },
     versionLabel(item) {
       const name = String(item?.name || "").replace(/\\/g, "/").split("/").pop();
