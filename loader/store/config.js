@@ -2,7 +2,6 @@ const config = {
   namespaced: true,
   state: () => ({
     language: localStorage.getItem("CS.language") || "cn",
-    shortcut: localStorage.getItem("CS.shortcut") || "click",
     windowing: localStorage.getItem("CS.windowing") || "full",
     civitai: "",
   }),

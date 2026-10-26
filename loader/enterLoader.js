@@ -71,23 +71,17 @@ function styleInit() {
   document.head.appendChild(style);
 }
 
-function shouldPopUp(event, shortcut) {
+// 模型菜单只认「左键单击」：Shift + 左键那条分支随设置页入口一起移除（不再有 UI 能改 shortcut）
+function shouldPopUp(event) {
   var clicked = event.type === LiteGraph.pointerevents_method + "down";
-  switch (shortcut) {
-    case "click":
-      return !event.shiftKey && clicked;
-    case "shift_click":
-      return event.shiftKey && clicked;
-  }
-  return false;
+  return !event.shiftKey && clicked;
 }
 
 function popUpReg() {
   let f = LGraphCanvas.prototype.processNodeWidgets;
   function processNodeWidgets(node, pos, event, active_widget) {
-    var shortcut = window.CSvm?.$store.state.config.shortcut || "click";
-    if (shouldPopUp(event, shortcut)) {
-      if (!node.widgets || !node.widgets.length || (!this.allow_interaction && !node.flags.allow_interaction)) {
+    if (shouldPopUp(event)) {
+      if (!node || !node.widgets || !node.widgets.length || (!this.allow_interaction && !node.flags.allow_interaction)) {
         return null;
       }
 
@@ -130,9 +124,8 @@ function popUpReg() {
   function onMouse(event) {
     var w = this.pointer.element.data.getWidgetAtCursor();
     var node = this.graph.getNodeOnPos(event.canvasX, event.canvasY, this.visible_nodes);
-    var shortcut = window.CSvm?.$store.state.config.shortcut || "click";
-    if (shouldPopUp(event, shortcut)) {
-      if (!node.widgets || !node.widgets.length || (!this.allow_interaction && !node.flags.allow_interaction)) {
+    if (shouldPopUp(event)) {
+      if (!node || !node.widgets || !node.widgets.length || (!this.allow_interaction && !node.flags.allow_interaction)) {
         return fff ? fff.call(this, event) : false;
       }
       // 仅枚举
