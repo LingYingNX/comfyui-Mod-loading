@@ -26,7 +26,7 @@ body .loader_page .s2-modal {
   background: var(--s2-panel);
   border: 1px solid var(--s2-line);
   border-radius: var(--s2-r-md);
-  box-shadow: 0 0.8vw 2.4vw rgba(0, 0, 0, 0.55);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   overflow: hidden;
 }
 
@@ -98,9 +98,12 @@ body .loader_page .s2-field input:not([type]) {
   color: var(--s2-tx);
   font-size: 1rem;
   outline: none;
+  transition: border-color var(--s2-duration) var(--s2-ease),
+    box-shadow var(--s2-duration) var(--s2-ease);
 }
 body .loader_page .s2-field input:focus {
   border-color: var(--s2-cyan);
+  box-shadow: 0 0 0 2px var(--s2-cyan-glow);
 }
 body .loader_page .s2-field input[disabled] {
   opacity: 0.55;
@@ -116,38 +119,23 @@ body .loader_page .s2-target {
   color: var(--s2-tx);
 }
 
-body .loader_page .s2-check {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.33vw;
-  font-size: 0.8rem;
-  line-height: 1.45;
-  color: var(--s2-tx-2);
-  cursor: pointer;
-}
-body .loader_page .s2-check input {
-  margin-top: 0.17vw;
-  accent-color: var(--s2-cyan);
-  cursor: pointer;
-}
-
 /* ---------- 进度 ---------- */
-body .loader_page .s2-progress {
-  height: 0.35vw;
-  min-height: 6px;
-  border-radius: 1vw;
-  background: var(--s2-inset);
+body .loader_page .s2-modal-mask > .s2-top-progress {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  z-index: 10001;
+  background: rgba(43, 127, 255, 0.12);
   overflow: hidden;
+  pointer-events: none;
 }
-body .loader_page .s2-progress-bar {
+body .loader_page .s2-top-progress-bar {
   height: 100%;
-  border-radius: 1vw;
-  background: var(--s2-cyan);
-  transition: width 0.25s ease;
-}
-body .loader_page .s2-progress-text {
-  font-size: 0.8rem;
-  color: var(--s2-tx-3);
+  background: var(--s2-blue);
+  box-shadow: 0 0 10px rgba(43, 127, 255, 0.75);
+  transition: width 180ms ease;
 }
 
 /* ---------- 底部 ---------- */
@@ -168,6 +156,9 @@ body .loader_page .s2-btn {
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
+  transition: background var(--s2-duration) var(--s2-ease),
+    border-color var(--s2-duration) var(--s2-ease),
+    color var(--s2-duration) var(--s2-ease);
 }
 body .loader_page .s2-btn.ghost {
   border-color: var(--s2-line-2);
@@ -177,10 +168,11 @@ body .loader_page .s2-btn.ghost {
 body .loader_page .s2-btn.ghost:hover {
   color: var(--s2-tx);
   border-color: var(--s2-tx-3);
+  background: var(--s2-card-2);
 }
 body .loader_page .s2-btn.primary {
   background: var(--s2-blue);
-  color: #fff;
+  color: var(--s2-tx);
 }
 body .loader_page .s2-btn.primary:hover {
   background: var(--s2-blue-hi);

@@ -1,5 +1,6 @@
-import { getLevelInf } from "../../../../static/js/public.js";
 import { getApi } from "../../../../static/js/api.js";
+
+const FLIP_GENERATIONS = new WeakMap();
 
 // 内联 SVG（禁止 emoji / 禁止 iconfont 硬凑）
 const SVG_LOCKED =
@@ -46,7 +47,7 @@ async function csPost(path, body) {
 }
 
 export default {
-  props: ["curList", "selectedModel", "column"],
+  props: ["curList", "selectedModel", "column", "allList"],
   data() {
     return {
       defaultCover: "./static/image/default.jpg",
@@ -58,10 +59,89 @@ export default {
       iconFolder: ICON_FOLDER,
       iconLock: ICON_LOCK,
       iconRefresh: ICON_REFRESH,
+      previewState: {},
     };
+  },
+  computed: {
+    displayList() {
+      const groups = new Map();
+      for (const item of this.curList) {
+        const key = this.previewKey(item);
+        if (!groups.has(key)) groups.set(key, item);
+      }
+      const selectedKey = this.previewKey(this.selectedModel);
+      if (selectedKey && this.curList.includes(this.selectedModel)) {
+        groups.set(selectedKey, this.selectedModel);
+      }
+      return [...groups.values()];
+    },
+  },
+  watch: {
+    column() {
+      const oldRects = this.captureGridRects();
+      this.$nextTick(() => this.animateGridChange(oldRects));
+    },
+    selectedModel(model) {
+      if (!model) return;
+      const index = this.previewItems(model).indexOf(model);
+      if (index < 0) return;
+      const state = this.ensurePreviewState(model);
+      state.current = index;
+      state.locked = index;
+    },
   },
   mounted() {},
   methods: {
+    captureGridRects() {
+      const rects = new Map();
+      const root = this.$refs.modelList;
+      if (!root) return rects;
+      for (const el of root.querySelectorAll(".model_item[data-key]")) {
+        rects.set(el.dataset.key, el.getBoundingClientRect());
+      }
+      return rects;
+    },
+    animateGridChange(oldRects) {
+      if (!oldRects.size || !window.Element.prototype.animate) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const root = this.$refs.modelList;
+      if (!root) return;
+      const viewportH = window.innerHeight;
+      for (const el of root.querySelectorAll(".model_item[data-key]")) {
+        const oldRect = oldRects.get(el.dataset.key);
+        if (!oldRect) continue;
+        const nextRect = el.getBoundingClientRect();
+        if (oldRect.bottom < 0 && nextRect.bottom < 0) continue;
+        if (oldRect.top > viewportH && nextRect.top > viewportH) continue;
+        if (!oldRect.width || !oldRect.height || !nextRect.width || !nextRect.height) continue;
+        const dx = oldRect.left - nextRect.left;
+        const dy = oldRect.top - nextRect.top;
+        const sx = oldRect.width / nextRect.width;
+        const sy = oldRect.height / nextRect.height;
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.01 && Math.abs(sy - 1) < 0.01) continue;
+        const generation = (FLIP_GENERATIONS.get(el) || 0) + 1;
+        FLIP_GENERATIONS.set(el, generation);
+        if (el.getAnimations) el.getAnimations().forEach((animation) => animation.cancel());
+        el.style.willChange = "transform";
+        const animation = el.animate(
+          [
+            { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+            { transform: "none" },
+          ],
+          {
+            duration: 220,
+            easing: "cubic-bezier(0.77, 0, 0.175, 1)",
+          }
+        );
+        const clear = () => {
+          if (FLIP_GENERATIONS.get(el) !== generation) return;
+          FLIP_GENERATIONS.delete(el);
+          el.style.willChange = "";
+        };
+        animation.onfinish = clear;
+        animation.oncancel = clear;
+      }
+    },
     // Use selected items
     useModel(model) {
       this.$emit("useModel", model);
@@ -70,9 +150,86 @@ export default {
     changeModel(model) {
       this.$emit("changeSelectedModel", model);
     },
-    // Obtain color values based on level
-    levelInf(level) {
-      return getLevelInf(level).color || "#808080";
+    archLabel(item) {
+      return String(item?.baseModel || item?.arch || "").trim() || this.$t("home.nav.other");
+    },
+    projectKey(item) {
+      const match = String(item?.url || "").match(/civitai\.com\/models\/(\d+)/i);
+      return match ? `civitai:${match[1]}` : "";
+    },
+    previewKey(item) {
+      return this.projectKey(item) || `${item?.mtype || ""}:${item?.name || ""}`;
+    },
+    previewItems(item) {
+      const projectKey = this.projectKey(item);
+      if (!projectKey) return item?.cover ? [item] : [];
+      const source = Array.isArray(this.allList) && this.allList.length ? this.allList : this.curList;
+      const versions = source.filter(
+        (candidate) => candidate?.cover && this.projectKey(candidate) === projectKey
+      );
+      if (!versions.length) return item?.cover ? [item] : [];
+      return versions.sort((a, b) =>
+        String(a.name || "").localeCompare(String(b.name || ""), "zh-CN", { numeric: true })
+      );
+    },
+    versionLabel(item) {
+      const name = String(item?.name || "").replace(/\\/g, "/").split("/").pop();
+      return name.replace(/\.[^.]+$/, "");
+    },
+    activeItem(item) {
+      const previews = this.previewItems(item);
+      return previews[this.currentPreviewIndex(item)] || item;
+    },
+    isSelectedCard(item) {
+      return this.previewItems(item).includes(this.selectedModel);
+    },
+    ensurePreviewState(item) {
+      const key = this.previewKey(item);
+      if (!this.previewState[key]) {
+        this.$set(this.previewState, key, { current: 0, locked: null });
+      }
+      return this.previewState[key];
+    },
+    currentPreviewIndex(item) {
+      const previews = this.previewItems(item);
+      if (!previews.length) return 0;
+      const current = this.previewState[this.previewKey(item)]?.current || 0;
+      return Math.min(current, previews.length - 1);
+    },
+    lockedPreviewIndex(item) {
+      const previews = this.previewItems(item);
+      const locked = this.previewState[this.previewKey(item)]?.locked;
+      return Number.isInteger(locked) && locked < previews.length ? locked : null;
+    },
+    previewSrc(item) {
+      const previews = this.previewItems(item);
+      return previews[this.currentPreviewIndex(item)]?.cover || this.defaultCover;
+    },
+    previewLabel(item) {
+      const previews = this.previewItems(item);
+      return this.versionLabel(previews[this.currentPreviewIndex(item)]);
+    },
+    hoverPreview(event, item) {
+      const previews = this.previewItems(item);
+      if (previews.length < 2) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(0.999999, (event.clientX - rect.left) / rect.width));
+      const state = this.ensurePreviewState(item);
+      state.current = Math.floor(ratio * previews.length);
+    },
+    lockPreview(item, index) {
+      const previews = this.previewItems(item);
+      if (!previews.length) return;
+      const state = this.ensurePreviewState(item);
+      state.locked = Math.max(0, Math.min(index, previews.length - 1));
+      state.current = state.locked;
+      this.changeModel(previews[state.locked]);
+    },
+    leavePreview(item) {
+      const state = this.previewState[this.previewKey(item)];
+      if (!state) return;
+      const selectedIndex = this.previewItems(item).indexOf(this.selectedModel);
+      state.current = this.lockedPreviewIndex(item) ?? (selectedIndex >= 0 ? selectedIndex : 0);
     },
     // 新版本角标文字（版本号在前、后缀在后）
     updateBadge(item) {
@@ -119,35 +276,37 @@ export default {
     /* ---------------- 右键菜单 ---------------- */
 
     onContextMenu(evt, item) {
+      const target = this.activeItem(item);
+      this.changeModel(target);
       if (typeof this.$contextMenu !== "function") return;
       this.$contextMenu(evt, [
         {
           icon: this.iconSite,
           text: this.$t("home.contextMenu.openSite"),
-          action: () => this.openModelSite(item),
+          action: () => this.openModelSite(target),
         },
         {
           icon: this.iconFolder,
           text: this.$t("home.contextMenu.openFolder"),
-          action: () => this.openLocalFolder(item),
+          action: () => this.openLocalFolder(target),
         },
         { divider: true },
         {
           icon: this.iconLock,
           text: this.$t("home.contextMenu.toggleLock"),
-          action: () => this.toggleLock(item),
+          action: () => this.toggleLock(target),
         },
         {
           icon: this.iconRefresh,
           text: this.$t("home.contextMenu.updateOne"),
-          action: () => this.fetchOneMetadata(item),
+          action: () => this.fetchOneMetadata(target),
         },
       ]);
     },
 
-    // 跳转模型原网站：有 update.url 用它，否则退化为站内搜索
+    // 优先打开当前文件对应的 Civitai 发布页；updated 版本页仅作兼容兜底。
     openModelSite(item) {
-      const url = item?.update?.url;
+      const url = item?.url || item?.update?.url;
       if (url) {
         window.open(url, "_blank");
         return;
@@ -215,26 +374,40 @@ export default {
     },
   },
   template: `
-              <div class="model_list" :style="{'--column':column}">
-                  <div v-for="(item,index) in curList" :key="index" class="model_item" :class="{'selected':item === selectedModel}"
-                       @click="changeModel(item)" @dblclick="useModel(item)"
+              <div ref="modelList" class="model_list" :style="{'--column':column}">
+                  <div v-for="item in displayList" :key="previewKey(item)" :data-key="previewKey(item)" class="model_item" :class="{'selected':isSelectedCard(item)}"
+                       @click="changeModel(activeItem(item))" @dblclick="useModel(activeItem(item))"
                        @contextmenu.prevent="onContextMenu($event, item)">
-                      <div class="img_container" :style="{'--height': (73.05 - (column * 0.55)) / column + 'vw' }">
-                          <img :src="item.cover || defaultCover" alt="cover" />
-                          <div v-if="item.update" class="badge-update" :title="updateTip(item)">
-                              <span v-html="svgBolt"></span>
-                              <span class="badge-text">{{updateBadge(item)}}</span>
+                      <div class="img_container" :style="{'--height': (73.05 - (column * 0.55)) / column + 'vw' }"
+                           @mousemove="hoverPreview($event, item)" @mouseleave="leavePreview(item)">
+                          <img :src="previewSrc(item)" alt="cover" />
+                          <img v-for="(preview, previewIndex) in previewItems(item)" :key="'preload-' + previewIndex"
+                               :src="preview.cover" class="preview-preload" alt="" aria-hidden="true" />
+                          <div v-if="previewItems(item).length > 1" class="preview-segments">
+                              <button v-for="(preview, previewIndex) in previewItems(item)" :key="previewIndex"
+                                      type="button" class="preview-segment"
+                                      :class="{ active: currentPreviewIndex(item) === previewIndex, locked: lockedPreviewIndex(item) === previewIndex }"
+                                      :aria-label="versionLabel(preview)"
+                                      :aria-pressed="lockedPreviewIndex(item) === previewIndex ? 'true' : 'false'"
+                                      @click.stop="lockPreview(item, previewIndex)"></button>
                           </div>
-                          <div class="badge-lock" :class="item.locked ? 'locked' : 'unlocked'"
-                               :title="$t('home.model.lockOn')"
-                               @click.stop="toggleLock(item)" v-html="item.locked ? svgLocked : svgUnlocked"></div>
+                          <div v-if="previewItems(item).length > 1 && previewLabel(item)" class="preview-caption">{{ previewLabel(item) }}</div>
+                          <div v-if="activeItem(item).update && previewItems(item).length < 2" class="badge-update" :title="updateTip(activeItem(item))">
+                              <span v-html="svgBolt"></span>
+                              <span class="badge-text">{{updateBadge(activeItem(item))}}</span>
+                          </div>
+                          <button type="button" class="badge-lock" :class="activeItem(item).locked ? 'locked' : 'unlocked'"
+                                  :aria-label="activeItem(item).locked ? $t('home.model.lockOff') : $t('home.model.lockOn')"
+                                  :aria-pressed="activeItem(item).locked ? 'true' : 'false'"
+                                  @mousemove.stop
+                                  @click.stop="toggleLock(activeItem(item))" v-html="activeItem(item).locked ? svgLocked : svgUnlocked"></button>
                       </div>
                       <div class="model_des" :style="{'--height':6 / column * 3 + 'vw'}">
-                          <div class="level" :style="{'background':levelInf(item.level)}">{{item.level}}</div>
                           <div class="text_des">
-                              <p :title="item.name">{{item.name}}</p>
-                              <p :title="item.type">{{item.type}}</p>
+                              <p :title="activeItem(item).name">{{activeItem(item).name}}</p>
+                              <p :title="activeItem(item).type">{{activeItem(item).type}}</p>
                           </div>
+                          <span v-if="archLabel(activeItem(item))" class="arch-badge">{{ archLabel(activeItem(item)) }}</span>
                       </div>
                   </div>
                   <div class="model_item model-card-download" :title="$t('home.model.downloadCardTip')" @click="openDownload">

@@ -17,7 +17,6 @@ export default {
       searchParameter: {
         key: "",
         sort: "",
-        level: "",
         tags: [],
         // 架构筛选（顶栏下拉写入，model 组件按它过滤）
         arch: "",
@@ -73,7 +72,7 @@ export default {
   },
   template: `<div v-if="!isLoading" class="home_page">
                <div class="content">
-                <Head :column-index="columnIndex" @changeSearchParameter="changeSearchParameter" @changeColumn="changeColumn" :all-list="allList" :arch="searchParameter.arch" />
+                <Head :column-index="columnIndex" @changeSearchParameter="changeSearchParameter" @changeColumn="changeColumn" :all-list="allList" :arch="searchParameter.arch" :tags="searchParameter.tags" />
                 <Classification @changeSearchParameter="changeSearchParameter" :all-list="allList" />
                 <Model :column="column" :all-list="allList" :selected-widget="selectedWidget" :search-parameter="searchParameter" @changeSearchParameter="changeSearchParameter" />
               </div>

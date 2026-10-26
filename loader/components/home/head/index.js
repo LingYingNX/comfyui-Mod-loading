@@ -1,19 +1,8 @@
 import hoverMenu from "../../public/hoverMenu.js";
 import IconRenderer from "../../public/iconRenderer.js";
-import { KNOWN_ARCHS, ARCH_OTHER } from "../../../static/js/public.js";
+import { ARCH_OTHER } from "../../../static/js/public.js";
 import { getApi } from "../../../static/js/api.js";
 // import { app } from "/scripts/app.js";
-
-// 下拉菜单里的架构显示名（键是 static/js/public.js 的 KNOWN_ARCHS 值，与后端 arch 字段一致）
-// 只列 Illustrious / SDXL 1.0 / Anima Pencil / Flux.1 四项，Pony / SD1.5 接在其后（有模型才渲染）。
-const ARCH_LABELS = {
-  Illustrious: "Illustrious",
-  SDXL: "SDXL 1.0",
-  Anima: "Anima Pencil",
-  Flux: "Flux.1",
-  Pony: "Pony",
-  "SD1.5": "SD1.5",
-};
 
 // 下拉项左侧的彩色圆点。模板用 🟣🔴🟢⚡ 四个 emoji（:951-954），按反面清单换成内联 SVG 圆点，
 // 颜色沿用卡片架构徽章的配色：Illustrious 淡紫 / SDXL 洋红 / Anima 薄荷绿；
@@ -38,7 +27,28 @@ if (!document.querySelector('link[href*="home/head/studio2.css"]')) {
 }
 
 // 后端返回的 V2 字段，批量抓完元数据后按这些键回读贴回卡片
-const V2_KEYS = ["arch", "update", "locked", "cover", "prompt_authors", "prompts"];
+const V2_KEYS = [
+  "arch",
+  "url",
+  "update",
+  "publishedAt",
+  "locked",
+  "cover",
+  "prompt_authors",
+  "prompts",
+  "baseModel",
+  "versionName",
+  "versionId",
+  "modelId",
+  "createdAt",
+  "fileFormat",
+  "sizeKB",
+  "sha256",
+  "recommendedWeight",
+  "trainingResolution",
+  "clipSkip",
+  "remoteVersionCount",
+];
 
 const ext = {
   is_rendering: false,
@@ -72,6 +82,10 @@ export default {
       default: "",
       type: String,
     },
+    tags: {
+      default: () => [],
+      type: Array,
+    },
     tag: {
       default: "",
       type: String,
@@ -83,11 +97,11 @@ export default {
       value: "",
       fetching: false,
       archOpen: false,
+      archCloseTimer: null,
       task: { total: 0, done: 0, current: "" },
       search: {
         key: "",
         sort: "",
-        level: "",
         arch: "",
       },
     };
@@ -96,43 +110,53 @@ export default {
     language() {
       return this.$store.state.config.language;
     },
-    // 已选架构的显示名；空串 = 全部。
-    // 模板 :946 收拢态显示的是「全部」（短词），选项列表里那项才是「全部架构」（:950）。
+    // 已选底模的显示名；空串直接显示「全部底模」。
     archLabel() {
       const arch = this.search.arch;
-      if (!arch) return this.$t("home.nav.all");
+      if (!arch) return this.$t("home.head.archAll");
       if (arch === ARCH_OTHER) return this.$t("home.nav.other");
-      return ARCH_LABELS[arch] || arch;
+      return arch;
     },
-    // 与左侧架构导航同一份分组、同一份计数。
-    // 计数为 0 的架构不渲染：模板 :951-954 只列了有模型的架构，第 9 节反面清单也禁止占位项。
+    // 底模候选只统计当前分类标签下的模型，值直接来自元数据。
+    scopedList() {
+      const models = this.allList || [];
+      const tags = Array.isArray(this.tags) ? this.tags : [];
+      if (!tags.length) return models;
+      return models.filter((model) => Array.isArray(model?.tags) && model.tags.some((tag) => tags.includes(tag)));
+    },
     archOptions() {
-      const otherName = this.$t("home.nav.other");
-      const buckets = {};
-      KNOWN_ARCHS.forEach((name) => (buckets[name] = 0));
-      buckets[ARCH_OTHER] = 0;
-      (this.allList || []).forEach((model) => {
-        const arch = model?.arch || "";
-        buckets[KNOWN_ARCHS.includes(arch) ? arch : ARCH_OTHER] += 1;
+      const buckets = new Map();
+      this.scopedList.forEach((model) => {
+        const baseModel = String(model?.baseModel || model?.arch || "").trim();
+        const key = baseModel || ARCH_OTHER;
+        buckets.set(key, (buckets.get(key) || 0) + 1);
       });
       const list = [
-        { key: "", name: this.$t("home.head.archAll"), count: (this.allList || []).length, dot: "" },
+        { key: "", name: this.$t("home.head.archAll"), count: this.scopedList.length, dot: "" },
       ];
-      KNOWN_ARCHS.forEach((name) => {
-        if (!buckets[name]) return;
-        list.push({ key: name, name: ARCH_LABELS[name] || name, count: buckets[name], dot: ARCH_DOT[name] || DOT_NEUTRAL });
+      const names = [...buckets.keys()]
+        .filter((name) => name !== ARCH_OTHER)
+        .sort((a, b) => a.localeCompare(b, this.language, { numeric: true }));
+      names.forEach((name) => {
+        list.push({ key: name, name, count: buckets.get(name), dot: ARCH_DOT[name] || DOT_NEUTRAL });
       });
-      if (buckets[ARCH_OTHER]) {
-        list.push({ key: ARCH_OTHER, name: otherName, count: buckets[ARCH_OTHER], dot: DOT_NEUTRAL });
+      if (buckets.get(ARCH_OTHER)) {
+        list.push({
+          key: ARCH_OTHER,
+          name: this.$t("home.nav.other"),
+          count: buckets.get(ARCH_OTHER),
+          dot: DOT_NEUTRAL,
+        });
       }
       return list;
     },
   },
   mounted() {
     document.addEventListener("click", this.onDocumentClick);
+    document.addEventListener("keydown", this.onDocumentKeydown);
   },
   watch: {
-    // 左侧导航（或任何人）改了共享的架构筛选 → 顶栏按钮文案跟着变。
+    // 左侧导航（或任何人）改了共享的底模筛选 → 顶栏按钮文案跟着变。
     // 只赋值不 emit，避免与 changeArch 形成回环。
     arch: {
       handler(v) {
@@ -140,9 +164,23 @@ export default {
       },
       immediate: true,
     },
+    tags: {
+      handler() {
+        this.$nextTick(() => {
+          if (!this.search.arch) return;
+          if (this.archOptions.some((item) => item.key === this.search.arch)) return;
+          this.search.arch = "";
+          this.$emit("changeSearchParameter", { arch: "" });
+        });
+      },
+      deep: true,
+      immediate: true,
+    },
   },
   beforeDestroy() {
     document.removeEventListener("click", this.onDocumentClick);
+    document.removeEventListener("keydown", this.onDocumentKeydown);
+    if (this.archCloseTimer) clearTimeout(this.archCloseTimer);
   },
   methods: {
     // Change sorting method
@@ -152,39 +190,61 @@ export default {
       this.search.key = "";
       this.$emit("changeSearchParameter", this.search);
     },
-    // Filter list based on level
-    changeLevel(value) {
-      const data = this.$t("home.head.rateList")[value].value;
-      this.search.key = "";
-      this.search.level = data;
-      this.$emit("changeSearchParameter", this.search);
-    },
     // Change the quantity that can be displayed in a row
     changeColumn(value) {
       const data = this.$t("home.head.sizeList")[value].value;
       localStorage.setItem("columnIndex", value);
       this.$emit("changeColumn", data);
     },
-    // 顶栏架构筛选下拉：展开 / 收起
-    toggleArch() {
-      this.archOpen = !this.archOpen;
+    openArch() {
+      if (this.archCloseTimer) {
+        clearTimeout(this.archCloseTimer);
+        this.archCloseTimer = null;
+      }
+      this.archOpen = true;
     },
-    // 选中一个架构。与左侧架构导航共用同一份筛选状态，所以两个字段一起发：
-    // arch 为空串 = 全部架构。
-    changeArch(key) {
+    closeArch() {
+      if (this.archCloseTimer) {
+        clearTimeout(this.archCloseTimer);
+        this.archCloseTimer = null;
+      }
       this.archOpen = false;
+    },
+    // 顶栏底模筛选下拉：hover 展开，移出 140ms 后收回；点击也可展开。
+    toggleArch() {
+      this.openArch();
+    },
+    onArchMouseEnter() {
+      if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+        this.openArch();
+      }
+    },
+    onArchMouseLeave() {
+      if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+      if (this.archCloseTimer) clearTimeout(this.archCloseTimer);
+      this.archCloseTimer = setTimeout(() => {
+        this.archOpen = false;
+        this.archCloseTimer = null;
+      }, 140);
+    },
+    // 选中一个底模。arch 为空串 = 全部底模。
+    changeArch(key) {
+      this.closeArch();
       this.search.arch = key || "";
       this.$emit("changeSearchParameter", { arch: this.search.arch });
     },
     // Esc 收起下拉
     onArchKeydown(e) {
-      if (e.key === "Escape") this.archOpen = false;
+      if (e.key === "Escape") this.closeArch();
+    },
+    onDocumentKeydown(e) {
+      if (e.key === "Escape") this.closeArch();
     },
     // 点空白收起：模板用 document 级 click 实现，这里照搬（不在菜单里点就关）
     onDocumentClick(e) {
       if (!this.archOpen) return;
       if (e.target?.closest?.(".arch_menu")) return;
-      this.archOpen = false;
+      this.closeArch();
     },
     // Enter key for search
     handleKeyDown(e) {
@@ -320,10 +380,9 @@ export default {
                         <span @click="handleSearch"><em class="iconfont icon-search"></em></span>
                     </div>
                     <HoverMenu icon="icon-exchange" :list="$t('home.head.categoryList')" @changeValue= "changeSort" />
-                    <div class="arch_menu">
+                    <div class="arch_menu" @mouseenter="onArchMouseEnter" @mouseleave="onArchMouseLeave">
                         <button class="arch_btn" type="button" :class="{'open': archOpen}" @click.stop="toggleArch" @keydown="onArchKeydown($event)">
                             <svg class="arch_btn_icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
-                            <span class="arch_btn_label">{{$t("home.head.archFilter")}}:</span>
                             <strong class="arch_btn_value">{{archLabel}}</strong>
                             <em class="arch_btn_arrow">▼</em>
                         </button>
@@ -338,8 +397,7 @@ export default {
                             </div>
                         </div>
                     </div>
-                    <HoverMenu icon="icon-medal" class="space" :list="$t('home.head.rateList')" @changeValue= "changeLevel" />
-                    <HoverMenu icon="" :value="columnIndex" :list="$t('home.head.sizeList')" @changeValue= "changeColumn" />
+                    <HoverMenu :center="true" icon="" :value="columnIndex" :list="$t('home.head.sizeList')" @changeValue= "changeColumn" />
                     <div class="block"></div>
                     <button class="render_button" :class="{'fetching': fetching}" :disabled="fetching" @click="fetchMetadata">{{ fetching ? $t("home.head.fetching") : $t("home.head.fetchText") }}</button>
                     <span v-if="fetching" class="fetch_tip">{{$t("home.head.fetchProgress", {done: task.done, total: task.total, current: task.current})}}</span>

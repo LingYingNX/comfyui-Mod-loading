@@ -22,46 +22,12 @@ const message = {
             value: 3,
           },
           {
-            name: "品质顺序",
-            value: 4,
-          },
-          {
-            name: "品质倒序",
-            value: 5,
-          },
-          {
             name: "体积顺序",
             value: 6,
           },
           {
             name: "体积倒序",
             value: 7,
-          },
-        ],
-        rateList: [
-          {
-            name: "不限",
-            value: 0,
-          },
-          {
-            name: "S",
-            value: "S",
-          },
-          {
-            name: "A",
-            value: "A",
-          },
-          {
-            name: "B",
-            value: "B",
-          },
-          {
-            name: "C",
-            value: "C",
-          },
-          {
-            name: "D",
-            value: "D",
           },
         ],
         sizeList: [
@@ -94,8 +60,7 @@ const message = {
         renderAllThumbnails: "渲染并覆盖所有缩略图？",
         renderingAlert: "正在渲染缩略图，请稍后再试",
         closePageConfirm: "关闭窗口并终止正在执行的任务？",
-        archFilter: "架构",
-        archAll: "全部架构",
+        archAll: "全部底模",
         fetchText: "一键获取元数据",
         fetchStart: "开始批量获取元数据？已上锁的模型与你自己写过的提示词会自动跳过。",
         fetching: "正在获取元数据",
@@ -109,7 +74,7 @@ const message = {
       nav: {
         all: "全部",
         other: "其他",
-        tip: "按架构分类，点击三角展开文件夹",
+        tip: "按底模分类，点击三角展开文件夹",
       },
       model: {
         useModelConfirm: "设置模型将退出缩略图渲染,是否确定?",
@@ -139,14 +104,10 @@ const message = {
         urlPlaceholder: "https://civitai.com/models/12345?modelVersionId=67890",
         name: "名称",
         namePlaceholder: "留空则用作者提供的标题",
-        autoName: "自动以作者标题命名，并下载所有多服装形态的提示词",
         cancel: "取消",
         confirm: "开始下载并获取元数据",
         needUrl: "请填模型链接",
         needName: "请填模型名称",
-        downloading: ({ named }) => {
-          return `下载中 ${named("percent")}%（${named("got")} / ${named("total")}）`;
-        },
         done: "下载完成，已写入预览图与提示词",
         failed: "下载失败",
       },
@@ -172,8 +133,30 @@ const message = {
           title: "基本信息",
           size: "文件大小",
           type: "文件类型",
-          creationTime: "创建时间",
+          publishedTime: "发布时间",
           modificationTime: "修改时间",
+          versions: "版本列表",
+          currentVersion: "当前",
+          versionsSummary: ({ named }) => {
+            return `检测到 ${named("local")} 个本地版本与 ${named("remote")} 个远端版本`;
+          },
+          localVersions: ({ named }) => {
+            return `共 ${named("local")} 个本地版本`;
+          },
+          refreshMetadata: "刷新元数据",
+          refreshingMetadata: "刷新中",
+          expand: "展开信息",
+          collapse: "收起信息",
+          baseModel: "基础底模",
+          recommendedWeight: "推荐权重",
+          trainingResolution: "训练分辨率",
+          clipSkip: "CLIP Skip",
+          activeVersion: "当前生效中",
+          installedVersion: "本地已安装",
+          switchVersion: "切换为此版本",
+          openFolder: "打开目录",
+          refreshDone: "元数据已刷新",
+          refreshFailed: "刷新元数据失败",
           notImageFile: "请选择图片格式文件",
           editName: "点击修改",
         },
@@ -227,8 +210,15 @@ const message = {
           authorTabCount: "作者提示词",
           customTabCount: "自定义提示词",
           createSet: "追加一套提示词",
+          collapse: "折叠",
+          expand: "展开",
           copyOne: "一键复制",
           copyDone: "已复制",
+          parameters: "采样参数",
+          viewTags: "标签",
+          viewEdit: "编辑",
+          emptyTags: "暂无提示词，切换到编辑输入",
+          tagCopyHint: "点击标签可单独复制",
           setTitle: "提示词标题",
           deleteSet: "删除此套件",
           noAuthor: "该作者没有提供提示词，可切到「自定义提示词」自己写",
@@ -300,46 +290,12 @@ const message = {
             value: 3,
           },
           {
-            name: "Level order",
-            value: 4,
-          },
-          {
-            name: "Level reverse",
-            value: 5,
-          },
-          {
             name: "Size order",
             value: 6,
           },
           {
             name: "Size reverse",
             value: 7,
-          },
-        ],
-        rateList: [
-          {
-            name: "All",
-            value: 0,
-          },
-          {
-            name: "S",
-            value: "S",
-          },
-          {
-            name: "A",
-            value: "A",
-          },
-          {
-            name: "B",
-            value: "B",
-          },
-          {
-            name: "C",
-            value: "B",
-          },
-          {
-            name: "D",
-            value: "D",
           },
         ],
         sizeList: [
@@ -372,8 +328,7 @@ const message = {
         renderAllThumbnails: "Render and overwrite all thumbnails?",
         renderingAlert: "Rendering thumbnails, please try again later",
         closePageConfirm: "Close the window and terminate the task?",
-        archFilter: "Architecture",
-        archAll: "All architectures",
+        archAll: "All base models",
         fetchText: "Fetch metadata",
         fetchStart: "Fetch metadata for all models? Locked models and your own prompts are skipped.",
         fetching: "Fetching metadata",
@@ -387,7 +342,7 @@ const message = {
       nav: {
         all: "All",
         other: "Other",
-        tip: "Grouped by architecture; click the arrow to expand folders",
+        tip: "Grouped by base model; click the arrow to expand folders",
       },
       model: {
         useModelConfirm: "Using model will exit the thumbnail rendering, are you sure?",
@@ -417,14 +372,10 @@ const message = {
         urlPlaceholder: "https://civitai.com/models/12345?modelVersionId=67890",
         name: "Name",
         namePlaceholder: "Leave empty to use the author's title",
-        autoName: "Name it after the author's title, and download all outfit prompts",
         cancel: "Cancel",
         confirm: "Download and fetch metadata",
         needUrl: "Please enter a model link",
         needName: "Please enter a model name",
-        downloading: ({ named }) => {
-          return `Downloading ${named("percent")}% (${named("got")} / ${named("total")})`;
-        },
         done: "Download finished, preview and prompts written",
         failed: "Download failed",
       },
@@ -450,8 +401,30 @@ const message = {
           title: "Basic",
           size: "Size",
           type: "Type",
-          creationTime: "Create time",
+          publishedTime: "Release time",
           modificationTime: "Modify time",
+          versions: "Versions",
+          currentVersion: "Current",
+          versionsSummary: ({ named }) => {
+            return `${named("local")} local versions and ${named("remote")} remote versions detected`;
+          },
+          localVersions: ({ named }) => {
+            return `${named("local")} local versions`;
+          },
+          refreshMetadata: "Refresh metadata",
+          refreshingMetadata: "Refreshing",
+          expand: "Expand information",
+          collapse: "Collapse information",
+          baseModel: "Base model",
+          recommendedWeight: "Recommended weight",
+          trainingResolution: "Training resolution",
+          clipSkip: "CLIP Skip",
+          activeVersion: "Currently active",
+          installedVersion: "Installed locally",
+          switchVersion: "Switch to this version",
+          openFolder: "Open folder",
+          refreshDone: "Metadata refreshed",
+          refreshFailed: "Failed to refresh metadata",
           notImageFile: "Please choose an image file",
           editName: "Click to edit",
         },
@@ -505,8 +478,15 @@ const message = {
           authorTabCount: "Author prompts",
           customTabCount: "Custom prompts",
           createSet: "Add prompt set",
+          collapse: "Collapse",
+          expand: "Expand",
           copyOne: "Copy",
           copyDone: "Copied",
+          parameters: "Sampling",
+          viewTags: "Tags",
+          viewEdit: "Edit",
+          emptyTags: "No prompt yet. Switch to Edit to add one.",
+          tagCopyHint: "Click a tag to copy it separately",
           setTitle: "Prompt title",
           deleteSet: "Delete this preset",
           noAuthor: "The author provided no prompts. Switch to \"Custom prompts\" to write your own.",
@@ -578,46 +558,12 @@ const message = {
             value: 3,
           },
           {
-            name: "品質順序",
-            value: 4,
-          },
-          {
-            name: "品質倒序",
-            value: 5,
-          },
-          {
             name: "體積順序",
             value: 6,
           },
           {
             name: "體積倒序",
             value: 7,
-          },
-        ],
-        rateList: [
-          {
-            name: "不限",
-            value: 0,
-          },
-          {
-            name: "S",
-            value: "S",
-          },
-          {
-            name: "A",
-            value: "A",
-          },
-          {
-            name: "B",
-            value: "B",
-          },
-          {
-            name: "C",
-            value: "C",
-          },
-          {
-            name: "D",
-            value: "D",
           },
         ],
         sizeList: [
@@ -650,8 +596,7 @@ const message = {
         renderAllThumbnails: "渲染並覆蓋所有縮略圖？",
         renderingAlert: "正在渲染縮略圖，請稍後再試",
         closePageConfirm: "關閉窗口並終止正在執行的任務？",
-        archFilter: "架構",
-        archAll: "全部架構",
+        archAll: "全部底模",
         fetchText: "一鍵獲取元數據",
         fetchStart: "開始批量獲取元數據？已上鎖的模型與你自己寫過的提示詞會自動跳過。",
         fetching: "正在獲取元數據",
@@ -665,7 +610,7 @@ const message = {
       nav: {
         all: "全部",
         other: "其他",
-        tip: "按架構分類，點擊三角展開資料夾",
+        tip: "按底模分類，點擊三角展開資料夾",
       },
       model: {
         useModelConfirm: "使用模型將退出縮略圖渲染,是否確定?",
@@ -695,14 +640,10 @@ const message = {
         urlPlaceholder: "https://civitai.com/models/12345?modelVersionId=67890",
         name: "名稱",
         namePlaceholder: "留空則用作者提供的標題",
-        autoName: "自動以作者標題命名，並下載所有多服裝形態的提示詞",
         cancel: "取消",
         confirm: "開始下載並獲取元數據",
         needUrl: "請填模型鏈接",
         needName: "請填模型名稱",
-        downloading: ({ named }) => {
-          return `下載中 ${named("percent")}%（${named("got")} / ${named("total")}）`;
-        },
         done: "下載完成，已寫入預覽圖與提示詞",
         failed: "下載失敗",
       },
@@ -728,8 +669,30 @@ const message = {
           title: "基本信息",
           size: "文件大小",
           type: "文件類型",
-          creationTime: "創建時間",
+          publishedTime: "發佈時間",
           modificationTime: "修改時間",
+          versions: "版本列表",
+          currentVersion: "當前",
+          versionsSummary: ({ named }) => {
+            return `檢測到 ${named("local")} 個本地版本與 ${named("remote")} 個遠端版本`;
+          },
+          localVersions: ({ named }) => {
+            return `共 ${named("local")} 個本地版本`;
+          },
+          refreshMetadata: "刷新元數據",
+          refreshingMetadata: "刷新中",
+          expand: "展開信息",
+          collapse: "收起信息",
+          baseModel: "基礎底模",
+          recommendedWeight: "推薦權重",
+          trainingResolution: "訓練解析度",
+          clipSkip: "CLIP Skip",
+          activeVersion: "當前生效中",
+          installedVersion: "本地已安裝",
+          switchVersion: "切換為此版本",
+          openFolder: "打開目錄",
+          refreshDone: "元數據已刷新",
+          refreshFailed: "刷新元數據失敗",
           buttonText: "使用此模型",
           notImageFile: "請選擇圖片格式文件",
           editName: "點擊修改",
@@ -784,8 +747,15 @@ const message = {
           authorTabCount: "作者提示詞",
           customTabCount: "自定義提示詞",
           createSet: "追加一套提示詞",
+          collapse: "折疊",
+          expand: "展開",
           copyOne: "一鍵復製",
           copyDone: "已復製",
+          parameters: "採樣參數",
+          viewTags: "標籤",
+          viewEdit: "編輯",
+          emptyTags: "暫無提示詞，切換到編輯輸入",
+          tagCopyHint: "點擊標籤可單獨復製",
           setTitle: "提示詞標題",
           deleteSet: "刪除此套件",
           noAuthor: "該作者沒有提供提示詞，可切到「自定義提示詞」自己寫",

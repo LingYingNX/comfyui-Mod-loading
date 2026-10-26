@@ -1,14 +1,24 @@
 /*
  * 页面级 chrome：分类胶囊行 + 底部状态栏。
- * 配色/字号一律沿用插件原版 loader/static/css/index.css（HEAD）：
- *   胶囊 .item  #383838 底 + 白字 + height 1.6vw + radius 0.3vw + padding 0 0.5vw
- *   选中 .selected_classify  青底 #00baad
- *   分隔 .block #383838
- * 为什么还需要这个文件：R2 删掉了分类行的展开箭头（.expand_icon），原版靠箭头把
- * flex-wrap 的多行撑开；没有箭头就必须让单行能横向滚到底，否则后面的标签点不到。
- * 所以这里只改「怎么排」，不改「长什么样」。
- * 选择器深度与旧产物一致（body .loader_page ... .home_page ...），靠 link 顺序压过它。
+ * 同时负责页面底色与分类胶囊的深色工具界面样式。
  */
+
+body .loader_page,
+body .loader_page .home_page {
+  background: var(--s2-bg);
+  color: var(--s2-tx);
+}
+
+body .loader_page .left_menu {
+  background: var(--s2-bg);
+  border-right-color: var(--s2-line);
+}
+
+body .loader_page .left_menu ul .selected,
+body .loader_page .left_menu ul li:hover {
+  background: var(--s2-card-2);
+  color: var(--s2-cyan-text);
+}
 
 /* ---------- 分类胶囊行 ---------- */
 body .loader_page .home_page .content .classification .item {
@@ -20,23 +30,30 @@ body .loader_page .home_page .content .classification .item {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #383838;
-  transition: background 0.3s;
-  border-radius: 0.3vw;
-  color: #ffffff;
+  background: var(--s2-card);
+  border: 1px solid transparent;
+  border-radius: var(--s2-r-sm);
+  color: var(--s2-tx-2);
   white-space: nowrap;
+  transition: background var(--s2-duration) var(--s2-ease),
+    border-color var(--s2-duration) var(--s2-ease),
+    color var(--s2-duration) var(--s2-ease);
 }
 
 body .loader_page .home_page .content .classification .item:hover {
-  background: #00baad;
+  background: var(--s2-card-2);
+  color: var(--s2-tx);
 }
 
-/* 当前选中：原版 .selected_classify 只改底色，不改字色/字重（HEAD index.css:270-272） */
+/* 当前选中：深灰底 + 1.5px 蓝色轮廓，不使用大面积高亮填充。 */
 body .loader_page .home_page .content .classification .selected_classify,
 body .loader_page .home_page .content .classification .item.selected_classify {
-  background: #00baad !important;
-  border: none;
-  box-shadow: none;
+  background: var(--s2-card-2) !important;
+  border-color: transparent;
+  color: var(--s2-cyan-text);
+  outline: 1.5px solid var(--s2-cyan);
+  outline-offset: -1.5px;
+  box-shadow: 0 0 0 0.5px var(--s2-cyan);
 }
 
 body .loader_page .home_page .content .classification .all {
@@ -46,9 +63,9 @@ body .loader_page .home_page .content .classification .all {
 body .loader_page .home_page .content .classification .block {
   width: 0.2vw;
   height: 1vw;
-  background: #383838;
+  background: var(--s2-line);
   margin: 0 0.55vw;
-  border-radius: 0.5vw;
+  border-radius: var(--s2-r-xs);
 }
 
 /* 单行横向滚动：原版是 flex-wrap + max-height:2vw + overflow:hidden，靠已删除的
@@ -76,15 +93,36 @@ body .loader_page .home_page .content .classification::-webkit-scrollbar {
 }
 
 body .loader_page .home_page .content .classification::-webkit-scrollbar-thumb {
-  background: #383838;
-  border-radius: 0.17vw;
+  background: var(--s2-line-2);
+  border-radius: var(--s2-r-xs);
 }
 
 body .loader_page .home_page .content .classification::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* ---------- 底部状态栏：原版就是 border-top: 2px solid #383838 + 进度条 #43cf7c ---------- */
+/* ---------- 底部状态栏 ---------- */
+body .loader_page .home_page .foot {
+  border-top-color: var(--s2-line);
+  color: var(--s2-tx-2);
+}
+
 body .loader_page .home_page .foot .progress .value {
   background: #43cf7c;
+}
+
+body .loader_page :where(button, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--s2-cyan);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .loader_page *,
+  body .loader_page *::before,
+  body .loader_page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

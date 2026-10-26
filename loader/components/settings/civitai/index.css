@@ -6,89 +6,94 @@
 .setting_items.civitai_setting .civitai_shell {
   display: flex;
   align-items: center;
-  gap: 0.5vw;
+  gap: 8px;
   width: 26vw;
-  margin-top: 0.7vw;
-  padding: 0.3vw;
-  background: #262626;
-  border: 1px solid #3d3d3d;
-  border-radius: 0.5vw;
-  transition: border-color 0.2s;
+  margin-top: 10px;
+  padding: 6px;
+  background: var(--s2-panel);
+  border: 1px solid var(--s2-line);
+  border-radius: var(--s2-r-sm);
+  transition: border-color var(--s2-duration) var(--s2-ease),
+    box-shadow var(--s2-duration) var(--s2-ease);
 }
 .setting_items.civitai_setting .civitai_shell:focus-within {
-  border-color: #ffc300;
+  border-color: var(--s2-cyan);
+  box-shadow: 0 0 0 2px var(--s2-cyan-glow);
 }
 .setting_items.civitai_setting .civitai_shell input {
   flex: 1;
   min-width: 0;
-  padding: 0.5vw 0.8vw;
+  padding: 5px 8px;
   border: 0;
-  border-radius: 0.4vw;
+  border-radius: var(--s2-r-xs);
   background: transparent;
-  color: #ffffff;
-  font-size: 1rem;
-  font-weight: bold;
+  color: var(--s2-tx);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 .setting_items.civitai_setting .civitai_shell input:focus {
   outline: none;
 }
 .setting_items.civitai_setting .civitai_shell input::-webkit-input-placeholder {
-  color: #808080;
+  color: var(--s2-tx-3);
   font-weight: normal;
 }
 .setting_items.civitai_setting .civitai_eye {
-  padding: 0.5vw 0.8vw;
-  border-radius: 0.4vw;
-  color: #808080;
+  padding: 5px 8px;
+  border-radius: var(--s2-r-xs);
+  color: var(--s2-tx-2);
   font-weight: bold;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: background var(--s2-duration) var(--s2-ease),
+    color var(--s2-duration) var(--s2-ease);
 }
 .setting_items.civitai_setting .civitai_eye:hover {
-  background: #383838;
-  color: #ffffff;
+  background: var(--s2-card-2);
+  color: var(--s2-tx);
 }
 .setting_items.civitai_setting .civitai_actions {
   display: flex;
   align-items: center;
-  gap: 0.5vw;
+  gap: 6px;
   width: fit-content;
-  margin-top: 0.5vw;
-  padding: 0.3vw;
-  background: #262626;
-  border: 1px solid #3d3d3d;
-  border-radius: 0.5vw;
+  margin-top: 8px;
+  padding: 4px;
+  background: var(--s2-panel);
+  border: 1px solid var(--s2-line);
+  border-radius: var(--s2-r-sm);
 }
 .setting_items.civitai_setting .civitai_actions button {
-  padding: 0.5vw 0.8vw;
+  padding: 5px 8px;
   border: 0;
-  border-radius: 0.4vw;
+  border-radius: var(--s2-r-sm);
   background: transparent;
-  color: #ffffff;
-  font-size: 1rem;
+  color: var(--s2-tx-2);
+  font-size: 0.8rem;
   font-weight: bold;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--s2-duration) var(--s2-ease),
+    color var(--s2-duration) var(--s2-ease);
 }
 .setting_items.civitai_setting .civitai_actions button:hover {
-  background: #383838;
+  background: var(--s2-card-2);
+  color: var(--s2-tx);
 }
 .setting_items.civitai_setting .civitai_actions button.primary {
-  background: #ffc300;
-  color: #1a1a1a;
+  background: var(--s2-blue);
+  color: var(--s2-tx);
 }
 .setting_items.civitai_setting .civitai_actions button.primary:hover {
-  background: #ffd24d;
+  background: var(--s2-blue-hi);
 }
 .setting_items.civitai_setting .civitai_status {
   display: flex;
   align-items: center;
-  gap: 0.4vw;
-  margin-top: 0.6vw;
-  color: #808080;
-  font-size: 0.9rem;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--s2-tx-2);
+  font-size: 0.75rem;
 }
 .setting_items.civitai_setting .civitai_status::before {
   content: "";
@@ -97,11 +102,11 @@
   min-width: 5px;
   min-height: 5px;
   border-radius: 50%;
-  background: #555555;
+  background: var(--s2-tx-3);
 }
 .setting_items.civitai_setting .civitai_status.is_set {
-  color: #ffc300;
+  color: #34d399;
 }
 .setting_items.civitai_setting .civitai_status.is_set::before {
-  background: #ffc300;
+  background: #34d399;
 }

@@ -45,20 +45,9 @@
   background: #262626;
   padding: 0 0.5vw;
 }
-.model_list .model_item .model_des .level {
-  width: 1.56vw;
-  height: 1.56vw;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #ffffff;
-  font-size: 1.3rem;
-  background-color: red;
-  border-radius: 0.3vw;
-}
 .model_list .model_item .model_des .text_des {
   flex: 1;
-  margin-left: 0.3vw;
+  margin-left: 0;
   width: 100%;
   overflow: hidden;
 }

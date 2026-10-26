@@ -20,10 +20,10 @@ body .s2-context-menu {
   flex-direction: column;
   min-width: 7.29vw; /* 175px */
   padding: 0.17vw 0; /* 4px 0 */
-  background: #242429;
-  border: 1px solid #3d3d46;
-  border-radius: 0.25vw; /* 6px */
-  box-shadow: 0 0.42vw 1.25vw rgba(0, 0, 0, 0.6); /* 0 10px 30px */
+  background: #202124;
+  border: 1px solid #2e2f33;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
   font-size: 0.8rem; /* 12px */
   user-select: none;
@@ -38,17 +38,17 @@ body .s2-context-menu .s2-context-item {
   align-items: center;
   gap: 0.33vw; /* 8px */
   padding: 0.29vw 0.5vw; /* 7px 12px */
-  color: #d1d5db;
+  color: #9ca3af;
   font-size: 0.8rem; /* 12px */
   line-height: 1.4;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 150ms ease, color 150ms ease;
 }
 
 body .s2-context-menu .s2-context-item:hover {
-  background: #31313a;
-  color: #ffffff;
+  background: #323338;
+  color: #f3f4f6;
 }
 
 body .s2-context-menu .s2-context-item .s2-context-icon {
@@ -85,6 +85,6 @@ body .s2-context-menu .s2-context-item.is-danger:hover {
 body .s2-context-menu .s2-context-divider {
   height: 1px;
   margin: 0.17vw 0; /* 4px 0 */
-  background: #33333a;
+  background: #2e2f33;
   flex: 0 0 auto;
 }

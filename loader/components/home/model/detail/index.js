@@ -1,4 +1,3 @@
-import { getLevelInf } from "../../../../static/js/public.js";
 // import { api } from "/scripts/api.js";
 import BasicInf from "./basicInf/index.js";
 import Workflow from "./workflow/index.js";
@@ -20,7 +19,7 @@ const ext = {
 };
 ext.register();
 export default {
-  props: ["model"],
+  props: ["model", "metadataVersion", "allList", "selectedWidget"],
   components: {
     BasicInf,
     Workflow,
@@ -29,23 +28,11 @@ export default {
   data() {
     return {
       list: [],
-      levelList: [],
       menuIndex: 0,
       isReadonly: true,
-      selectedLevel: "D",
+      basicRefreshing: false,
       defaultCover: "./static/image/default.jpg",
     };
-  },
-  created() {
-    this.getLevelColor();
-  },
-  watch: {
-    model: {
-      handler(newValue) {
-        this.selectedLevel = newValue.level;
-      },
-      deep: true,
-    },
   },
   methods: {
     // Click to trigger name modification
@@ -77,30 +64,27 @@ export default {
     blurInput() {
       this.isReadonly = true;
     },
-    // Change level
-    changeLevel(levelInf) {
-      this.selectedLevel = levelInf.value;
-      this.$emit("changeLevel", levelInf.value);
+    refreshMetadata(model) {
+      this.$emit("refreshMetadata", model);
     },
-    // Obtain the corresponding color based on the current level
-    getLevelColor() {
-      const list = ["S", "A", "B", "C", "D"];
-      list.forEach((item) => {
-        this.levelList.push(getLevelInf(item));
-      });
-      this.selectedLevel = this.model.level;
+    async refreshCurrentMetadata() {
+      if (this.basicRefreshing || !this.$refs.basicInf) return;
+      this.basicRefreshing = true;
+      try {
+        await this.$refs.basicInf.refreshMetadata(this.model);
+      } finally {
+        this.basicRefreshing = false;
+      }
     },
-    // Add a tag
-    addTag(tagValue) {
-      this.$emit("addTag", tagValue);
-    },
-    // Delete tag
-    deleteTag(index) {
-      this.$emit("deleteTag", index);
+    useVersion(model) {
+      this.$emit("useModel", model);
     },
     // Click to use
     useModel() {
       this.$emit("useModel", this.model);
+    },
+    changeVersion(model) {
+      this.$emit("changeSelectedModel", model);
     },
     // Rendering an image
     renderPic() {
@@ -158,20 +142,22 @@ export default {
                   <input type="file" id="file_input" accept="image/*" @change="inputCover($event)" />
                 </div>
               </div>
-              <div v-if="isReadonly" class="model_name" @click="editName" :title="$t('home.modelDetail.basicInf.editName')"><p>{{model.name}}</p></div>
+              <div v-if="isReadonly" class="model_name"><p @click="editName" :title="$t('home.modelDetail.basicInf.editName')">{{model.name}}</p></div>
               <div v-else class="name_input">
                 <input ref="nameInput" type="value" :value="model.name" @blur="blurInput"  @keydown="nameInputKeyDown"/>
                 <span @mousedown="changeName($event)"><em class="iconfont icon-edit"></em></span> 
               </div>
-              <div class="level_group">
-                <span v-for="(item, index) in levelList" :key="index" class="level_item" :class="{selected:selectedLevel === item.value}" :style="{'--color':item.color}" @click="changeLevel(item)">{{item.value}}</span>
-              </div>
               <div class="menu_tab">
                 <div v-for="(item,index) in $t('home.modelDetail.menuTab')" :key="index" class="menu_item" :class="{'active_menu': index === menuIndex }" @click="changeMenu(index)">{{item.name}}</div>
+                <button v-if="menuIndex === 2" type="button" class="version_refresh" :disabled="basicRefreshing" @click="refreshCurrentMetadata">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/></svg>
+                  <span>{{ basicRefreshing ? $t("home.modelDetail.basicInf.refreshingMetadata") : $t("home.modelDetail.basicInf.refreshMetadata") }}</span>
+                </button>
               </div>
               <Workflow v-if="menuIndex === 0" :model="model" />
-              <Prompt v-if="menuIndex === 1" :model="model" />
-              <BasicInf v-if="menuIndex === 2"  @addTag="addTag" @deleteTag="deleteTag" :model="model" />
+              <Prompt v-if="menuIndex === 1" :model="model" :metadata-version="metadataVersion" />
+              <BasicInf v-if="menuIndex === 2" ref="basicInf" :all-list="allList" :model="model" :selected-widget="selectedWidget"
+                        @changeVersion="changeVersion" @refreshMetadata="refreshMetadata" @useVersion="useVersion" />
               <div class="detail-footer">
                 <button class="use_button btn-apply-model" @click="useModel">{{$t("home.modelDetail.useButtonText")}} ({{model.type}})</button>
               </div>

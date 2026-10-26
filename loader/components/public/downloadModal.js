@@ -35,11 +35,8 @@ export default {
     return {
       url: "",
       name: "",
-      autoName: true,
       running: false,
       percent: 0,
-      gotBytes: 0,
-      totalBytes: 0,
       state: "",
       taskId: "",
       svgClose: SVG_CLOSE,
@@ -49,22 +46,8 @@ export default {
     targetText() {
       return this.$t("home.download.toCategory", { category: this.category || this.mtype });
     },
-    progressText() {
-      return this.$t("home.download.downloading", {
-        percent: this.percent,
-        got: this.formatBytes(this.gotBytes),
-        total: this.totalBytes ? this.formatBytes(this.totalBytes) : "?",
-      });
-    },
   },
   methods: {
-    formatBytes(bytes) {
-      const value = Number(bytes) || 0;
-      if (value >= 1024 ** 3) return (value / 1024 ** 3).toFixed(2) + " GB";
-      if (value >= 1024 ** 2) return (value / 1024 ** 2).toFixed(1) + " MB";
-      if (value >= 1024) return (value / 1024).toFixed(1) + " KB";
-      return value + " B";
-    },
     close() {
       if (this.running) return;
       this.$emit("close");
@@ -79,8 +62,6 @@ export default {
       this.running = true;
       this.state = "pending";
       this.percent = 0;
-      this.gotBytes = 0;
-      this.totalBytes = 0;
       try {
         const resp = await getApi().fetchApi("/cs/download_model", {
           method: "POST",
@@ -90,7 +71,7 @@ export default {
             name: (this.name || "").trim(),
             mtype: this.mtype,
             category: this.category || "",
-            auto_name: this.autoName,
+            auto_name: true,
             api_key: this.$store.state.config.civitai || "",
           }),
         });
@@ -121,8 +102,6 @@ export default {
         if (!json) continue;
         this.state = json.state || "";
         this.percent = json.percent || 0;
-        this.gotBytes = json.got_bytes || 0;
-        this.totalBytes = json.total_bytes || 0;
         if (json.running) continue;
         this.running = false;
         if (this.state === "done") {
@@ -139,6 +118,9 @@ export default {
   },
   template: `
     <div class="s2-modal-mask" @click.self="close">
+      <div v-if="running" class="s2-top-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="percent">
+        <div class="s2-top-progress-bar" :style="{width: Math.max(percent, 2) + '%'}"></div>
+      </div>
       <div class="s2-modal" role="dialog" aria-modal="true">
         <div class="s2-modal-head">
           <h3>{{$t('home.download.title')}}</h3>
@@ -154,14 +136,6 @@ export default {
             <input v-model="name" :disabled="running" :placeholder="$t('home.download.namePlaceholder')" />
           </div>
           <div class="s2-target">{{targetText}}</div>
-          <label class="s2-check">
-            <input type="checkbox" v-model="autoName" :disabled="running" />
-            <span>{{$t('home.download.autoName')}}</span>
-          </label>
-          <div v-if="running" class="s2-progress">
-            <div class="s2-progress-bar" :style="{width: Math.max(percent, 2) + '%'}"></div>
-          </div>
-          <div v-if="running" class="s2-progress-text">{{progressText}}</div>
         </div>
         <div class="s2-modal-foot">
           <button class="s2-btn ghost" type="button" :disabled="running" @click="close">{{$t('home.download.cancel')}}</button>

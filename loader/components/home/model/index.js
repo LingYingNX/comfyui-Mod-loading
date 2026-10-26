@@ -1,9 +1,32 @@
 import ModelList from "./list/index.js";
 import ModelDetail from "./detail/index.js";
 import DownloadModal from "../../public/downloadModal.js";
-import { KNOWN_ARCHS, ARCH_OTHER } from "../../../static/js/public.js";
+import { ARCH_OTHER } from "../../../static/js/public.js";
 import { getApi } from "../../../static/js/api.js";
 // import { api } from "/scripts/api.js";
+
+const V2_MODEL_KEYS = [
+  "arch",
+  "url",
+  "update",
+  "publishedAt",
+  "locked",
+  "cover",
+  "prompt_authors",
+  "prompts",
+  "baseModel",
+  "versionName",
+  "versionId",
+  "modelId",
+  "createdAt",
+  "fileFormat",
+  "sizeKB",
+  "sha256",
+  "recommendedWeight",
+  "trainingResolution",
+  "clipSkip",
+  "remoteVersionCount",
+];
 
 async function update_config(model, key, old_data, cb = (resp) => {}) {
   try {
@@ -38,7 +61,7 @@ export default {
     },
     selectedWidget: {
       default: null,
-      type: String,
+      type: [String, Object],
     },
     column: {
       default: 0,
@@ -70,13 +93,14 @@ export default {
       immediate: true,
       deep: true,
     },
-    // 架构筛选（顶栏下拉写入 searchParameter.arch，由上面的 searchParameter watcher 触发重过滤）
+    // 底模筛选（顶栏下拉写入 searchParameter.arch，由上面的 searchParameter watcher 触发重过滤）
   },
   data() {
     return {
       curList: [],
       selectedModel: null,
       downloadOpen: false,
+      metadataVersion: 0,
     };
   },
   methods: {
@@ -118,30 +142,6 @@ export default {
       }
       update_config(model, "name", old_data, cb);
     },
-    // Change level
-    changeLevel(level) {
-      let old_data = this.selectedModel.level;
-      this.selectedModel.level = level;
-      update_config(this.selectedModel, "level", old_data);
-    },
-    // Add tag
-    addTag(value) {
-      let old_data = this.selectedModel.tags;
-      this.selectedModel.tags.push(value);
-      update_config(this.selectedModel, "tags", old_data);
-    },
-    // Delete tag
-    deleteTag(index) {
-      // 如果 当前删除的tag在 dir_tags中 则不允许删除
-      let tag = this.selectedModel.tags[index];
-      if (this.selectedModel.dir_tags?.includes(tag)) {
-        alert(this.$t("home.model.dirTagCantDelete"));
-        return;
-      }
-      let old_data = this.selectedModel.tags;
-      this.selectedModel.tags.splice(index, 1);
-      update_config(this.selectedModel, "tags", old_data);
-    },
     // Modify cover
     modifyCover(coverSrc) {
       this.selectedModel.cover = coverSrc;
@@ -154,20 +154,18 @@ export default {
     filterList(searchParameter) {
       const newList = this.allList.filter((x) => {
         const key = x.name.includes(searchParameter.key);
-        const level = searchParameter.level === 0 || x.level === searchParameter.level;
         const tag = searchParameter.tags.length === 0 || x.tags.find((tagItem) => searchParameter.tags.includes(tagItem));
-        // 架构筛选：未选（空串）时不过滤；__other__ 表示「不属于任何已知架构」
+        // 底模筛选：优先使用元数据 baseModel，旧数据回退 arch。
         const archFilter = searchParameter.arch || "";
-        const arch =
-          !archFilter ||
-          (archFilter === ARCH_OTHER ? !KNOWN_ARCHS.includes(x.arch) : x.arch === archFilter);
+        const baseModel = String(x.baseModel || x.arch || "").trim();
+        const arch = !archFilter || (archFilter === ARCH_OTHER ? !baseModel : baseModel === archFilter);
         if (this.node) {
           let filters = this.node.CSgetModelFilters(true);
           if (filters?.includes(x.name)) {
             return false;
           }
         }
-        return key && level && tag && arch;
+        return key && tag && arch;
       });
       this.sortList(searchParameter.sort, newList);
       this.curList = newList;
@@ -199,26 +197,6 @@ export default {
           break;
         case 3:
           newList.sort((a, b) => b.name.localeCompare(a.name, "zh-CN"));
-          break;
-        case 4:
-          newList.sort((a, b) => {
-            if (a.level === "S" && b.level !== "S") {
-              return 1;
-            } else if (a.level !== "S" && b.level === "S") {
-              return -1;
-            }
-            return b.level.localeCompare(a.level, "zh-CN");
-          });
-          break;
-        case 5:
-          newList.sort((a, b) => {
-            if (a.level === "S" && b.level !== "S") {
-              return -1;
-            } else if (a.level !== "S" && b.level === "S") {
-              return 1;
-            }
-            return a.level.localeCompare(b.level, "zh-CN");
-          });
           break;
         case 6:
           newList.sort((a, b) => a.size - b.size);
@@ -253,9 +231,11 @@ export default {
         const map = await resp.json();
         const fresh = map && map[item.name];
         if (!fresh) return;
-        ["arch", "update", "locked", "cover", "prompt_authors", "prompts"].forEach((key) => {
+        V2_MODEL_KEYS.forEach((key) => {
           if (key in fresh) this.$set(item, key, fresh[key]);
         });
+        // 提示词工作台持有本地编辑副本，用独立令牌通知它拉取刚写回的数据
+        this.metadataVersion += 1;
       } catch (error) {
         // 静默失败：卡片上是旧值，用户再点一次即可
       }
@@ -263,8 +243,8 @@ export default {
   },
   template: `
             <div class="model_display">
-                <ModelList v-if="curList.length > 0" :curList="curList" :selected-model="selectedModel" :column="column" @changeSelectedModel="changeSelectedModel" @useModel="useModel" @openDownload="openDownload" @refreshMetadata="refreshMetadata" />
-                <ModelDetail v-if="curList.length > 0" :model="selectedModel" @modifyCover="modifyCover" @changeLevel="changeLevel" @modifyName="modifyName" @addTag="addTag" @deleteTag="deleteTag"  @useModel="useModel" />
+                <ModelList v-if="curList.length > 0" :curList="curList" :all-list="allList" :selected-model="selectedModel" :column="column" @changeSelectedModel="changeSelectedModel" @useModel="useModel" @openDownload="openDownload" @refreshMetadata="refreshMetadata" />
+                <ModelDetail v-if="curList.length > 0" :all-list="allList" :model="selectedModel" :selected-widget="selectedWidget" :metadata-version="metadataVersion" @changeSelectedModel="changeSelectedModel" @modifyCover="modifyCover" @modifyName="modifyName" @refreshMetadata="refreshMetadata" @useModel="useModel" />
                 <DownloadModal v-if="downloadOpen" :mtype="currentMtype()" :category="currentCategory()" @close="downloadOpen = false" />
                 <div v-if="curList.length === 0" class="empty">
                   <p v-if="searchParameter.key">{{$t('home.searchValue')}}: {{searchParameter.key}}</p>
