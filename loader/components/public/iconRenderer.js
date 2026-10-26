@@ -1,20 +1,7 @@
 import { getApi } from "../../static/js/api.js";
+import { notify } from "../../static/js/notify.js";
 
 // import { api } from "/scripts/api.js";
-
-// 气泡出口：本 class 由 enterLoader.js 在 ComfyUI 父页里 new 出来（父页没有全局 Vue），
-// 兜底走 window.CSvm（loader 起来后 iframe 自己挂的，同 blueprints.js 的 `window.CSvm?.$t` 约定）；
-// 在 iframe 内跑时则直接命中 Vue 原型上的 $message。detail 只进控制台，避免把整段节点报错塞进气泡。
-function notify(type, key, detail) {
-  const vm = typeof window !== "undefined" ? window.CSvm : null;
-  const proto = typeof Vue !== "undefined" ? Vue.prototype : null;
-  const push = (proto && proto.$message) || (vm && vm.$message);
-  const i18n = (vm && vm.$i18n) || (proto && proto.$i18n);
-  const text = i18n && i18n.t ? i18n.t(key) : key;
-  if (push) push({ type: type, message: detail ? text + "：" + detail : text });
-  else console.error("[studio] " + text + (detail ? " " + detail : ""));
-  if (push && detail) console.error("[studio] " + key + " " + detail);
-}
 
 class IconRenderer {
   get rendering() {

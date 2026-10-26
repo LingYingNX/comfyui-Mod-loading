@@ -11,10 +11,6 @@ const config = {
       localStorage.setItem("CS.language", newLanguage);
       state.language = newLanguage;
     },
-    updateShortcut(state, newShortcut) {
-      localStorage.setItem("CS.shortcut", newShortcut);
-      state.shortcut = newShortcut;
-    },
     updateWindowing(state, value) {
       localStorage.setItem("CS.windowing", value);
       if (value === "full") {

@@ -49,7 +49,6 @@ export default {
     }
     this.column = this.$t("home.head.sizeList")[this.columnIndex].value;
     this.$i18n.locale = this.$store.state.config.language;
-    this.$store.commit("config/updateShortcut", this.$store.state.config.shortcut);
     this.$store.commit("config/updateWindowing", this.$store.state.config.windowing);
     // C站 Key 存在插件配置文件里，进 home 页先拉进内存，
     // 之后 runFetch / downloadModal 提交的 api_key 才有值
