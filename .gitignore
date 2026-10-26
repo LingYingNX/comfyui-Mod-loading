@@ -2,3 +2,4 @@ __pycache__
 *.pyc
 model-config.json
 model-config.json.bak*
+*.js.bak*
