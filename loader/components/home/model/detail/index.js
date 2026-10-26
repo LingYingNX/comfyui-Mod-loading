@@ -149,14 +149,14 @@ export default {
               </div>
               <div class="menu_tab">
                 <div v-for="(item,index) in $t('home.modelDetail.menuTab')" :key="index" class="menu_item" :class="{'active_menu': index === menuIndex }" @click="changeMenu(index)">{{item.name}}</div>
-                <button v-if="menuIndex === 2" type="button" class="version_refresh" :disabled="basicRefreshing" @click="refreshCurrentMetadata">
+                <button type="button" class="version_refresh" :disabled="basicRefreshing" @click="refreshCurrentMetadata">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/></svg>
                   <span>{{ basicRefreshing ? $t("home.modelDetail.basicInf.refreshingMetadata") : $t("home.modelDetail.basicInf.refreshMetadata") }}</span>
                 </button>
               </div>
               <Workflow v-if="menuIndex === 0" :model="model" />
               <Prompt v-if="menuIndex === 1" :model="model" :metadata-version="metadataVersion" />
-              <BasicInf v-if="menuIndex === 2" ref="basicInf" :all-list="allList" :model="model" :selected-widget="selectedWidget"
+              <BasicInf v-show="menuIndex === 2" ref="basicInf" :all-list="allList" :model="model" :selected-widget="selectedWidget"
                         @changeVersion="changeVersion" @refreshMetadata="refreshMetadata" @useVersion="useVersion" />
               <div class="detail-footer">
                 <button class="use_button btn-apply-model" @click="useModel">{{$t("home.modelDetail.useButtonText")}} ({{model.type}})</button>
