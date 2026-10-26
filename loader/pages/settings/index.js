@@ -1,12 +1,10 @@
 import Language from "../../components/settings/language/index.js";
-import Shortcut from "../../components/settings/shortcut/index.js";
 import Civitai from "../../components/settings/civitai/index.js";
 
 export default {
   name: "Settings",
   components: {
     Language,
-    Shortcut,
     Civitai,
   },
   data() {
@@ -22,7 +20,6 @@ export default {
               <div class="content_wrapper">
                 <div class="content">
                   <Language />
-                  <Shortcut />
                   <Civitai />
                 </div>
               </div>

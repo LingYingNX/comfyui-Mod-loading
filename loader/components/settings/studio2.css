@@ -3,8 +3,7 @@
  * architecture filter instead of the legacy yellow segmented controls.
  */
 
-body .loader_page .settings_page .content_wrapper .content .setting_items .language_list,
-body .loader_page .settings_page .content_wrapper .content .setting_items .shortcut_list {
+body .loader_page .settings_page .content_wrapper .content .setting_items .language_list {
   gap: 4px;
   padding: 4px;
   margin-top: 10px;
@@ -13,8 +12,7 @@ body .loader_page .settings_page .content_wrapper .content .setting_items .short
   border-radius: var(--s2-r-sm);
 }
 
-body .loader_page .settings_page .content_wrapper .content .setting_items .language_list .language_item,
-body .loader_page .settings_page .content_wrapper .content .setting_items .shortcut_list .shortcut_item {
+body .loader_page .settings_page .content_wrapper .content .setting_items .language_list .language_item {
   padding: 7px 10px;
   border: 1px solid transparent;
   border-radius: var(--s2-r-xs);
@@ -27,14 +25,12 @@ body .loader_page .settings_page .content_wrapper .content .setting_items .short
     color var(--s2-duration) var(--s2-ease);
 }
 
-body .loader_page .settings_page .content_wrapper .content .setting_items .language_list .language_item:hover,
-body .loader_page .settings_page .content_wrapper .content .setting_items .shortcut_list .shortcut_item:hover {
+body .loader_page .settings_page .content_wrapper .content .setting_items .language_list .language_item:hover {
   background: var(--s2-card-2);
   color: var(--s2-tx);
 }
 
-body .loader_page .settings_page .content_wrapper .content .setting_items .language_list .selected,
-body .loader_page .settings_page .content_wrapper .content .setting_items .shortcut_list .selected {
+body .loader_page .settings_page .content_wrapper .content .setting_items .language_list .selected {
   background: var(--s2-card-2) !important;
   border-color: var(--s2-cyan);
   box-shadow: inset 0 0 0 0.5px var(--s2-cyan);
