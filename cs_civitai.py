@@ -280,10 +280,21 @@ async def collect_metadata(mtype: str, mname: str) -> dict:
     model_path = ModelManager.find_model(mtype, mname)
     if not model_path.exists():
         return {"_reason": "model_file_missing"}
-    file_hash = await asyncio.to_thread(sha256_file, model_path)
-    safe_meta = await asyncio.to_thread(read_safetensors_metadata, model_path)
     sidecar = await asyncio.to_thread(read_json, model_path.with_suffix(".metadata.json"))
     cached_version = sidecar.get("civitai") if isinstance(sidecar, dict) else None
+    cached_hash = str(sidecar.get("sha256") or "").strip().lower() if isinstance(sidecar, dict) else ""
+    cached_size = sidecar.get("size") if isinstance(sidecar, dict) else None
+    try:
+        size_matches = cached_size is None or int(cached_size) == model_path.stat().st_size
+    except (TypeError, ValueError, OSError):
+        size_matches = False
+    # 侧车已有 SHA 时复用，避免每次给数 GB 模型重算哈希。
+    valid_cached_hash = len(cached_hash) == 64 and all(ch in "0123456789abcdef" for ch in cached_hash)
+    if valid_cached_hash and size_matches:
+        file_hash = cached_hash
+    else:
+        file_hash = await asyncio.to_thread(sha256_file, model_path)
+    safe_meta = await asyncio.to_thread(read_safetensors_metadata, model_path)
     try:
         version = await civitai_get(f"model-versions/by-hash/{file_hash}")
     except Exception:

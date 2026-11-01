@@ -77,10 +77,11 @@ async def open_folder(request: web.Request):
             status=200,
             body=json.dumps({"status": False, "message": "model not found"}, ensure_ascii=False),
         )
-    folder = model_path.parent
+    folder = model_path.parent.resolve()
     try:
         if sys.platform.startswith("win"):
-            subprocess.Popen(["explorer", f"/select,{model_path.resolve()}"])  # noqa: S603  (Windows 专用)
+            # ComfyUI 以管理员启动时，/select 会被现有桌面 Shell 吞掉；/separate 可稳定打开真实目录。
+            subprocess.Popen(["explorer", f"/separate,{folder}"])  # noqa: S603  (Windows 专用)
         elif sys.platform == "darwin":
             subprocess.Popen(["open", "-R", model_path.resolve().as_posix()])
         else:
@@ -89,7 +90,7 @@ async def open_folder(request: web.Request):
         return web.Response(
             status=200, body=json.dumps({"status": False, "message": str(e)}, ensure_ascii=False)
         )
-    return web.Response(status=200, body=json.dumps({"status": True, "path": model_path.resolve().as_posix()}))
+    return web.Response(status=200, body=json.dumps({"status": True, "path": folder.as_posix()}))
 
 
 
