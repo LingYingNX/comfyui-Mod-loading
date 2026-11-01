@@ -18,7 +18,7 @@ AIGODLIKE-ComfyUI-STUDIO is equivalent to a custom node, you can use any method 
 Then run:
 ```sh
 cd ComfyUI/custom_nodes
-git clone https://github.com/AIGODLIKE/AIGODLIKE-ComfyUI-Studio.git
+git clone https://github.com/LingYingNX/comfyui-Mod-loading.git
 ```
 ## How to use it
 Find a loader, **left click** on model switch to pop up ComfyUI Studio Manager. If you still need to use the original model list, use **Shift+left** click on model switch to pop up the original model list

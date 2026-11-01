@@ -5,7 +5,7 @@ version = "1.0.1"
 license = "LICENSE"
 
 [project.urls]
-Repository = "https://github.com/AIGODLIKE/AIGODLIKE-ComfyUI-Studio"
+Repository = "https://github.com/LingYingNX/comfyui-Mod-loading"
 
 [tool.comfy]
 PublisherId = "aigodlike"
