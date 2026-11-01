@@ -287,19 +287,8 @@ body .loader_page .home_page .content .model_display .model_detail .basic_inf .v
     box-shadow var(--s2-duration) var(--s2-ease);
 }
 
-body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_item:hover {
-  border-color: var(--s2-line-2);
-  background: var(--s2-card-2);
-}
-
 body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_item.selected {
   border-color: var(--s2-line-2);
-}
-
-body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_item.active {
-  border-color: var(--s2-cyan);
-  background: linear-gradient(180deg, rgba(43, 127, 255, 0.12), rgba(43, 127, 255, 0.05));
-  box-shadow: inset 3px 0 0 var(--s2-cyan);
 }
 
 body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_item_head {
@@ -372,6 +361,10 @@ body .loader_page .home_page .content .model_display .model_detail .basic_inf .v
 body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_heading {
   flex-wrap: wrap;
   min-width: 0;
+}
+
+body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_heading:hover .version_name {
+  color: var(--s2-cyan-text);
 }
 
 body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_name {
@@ -452,12 +445,6 @@ body .loader_page .home_page .content .model_display .model_detail .basic_inf .v
   background: currentColor;
 }
 
-body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_state.active {
-  border-color: rgba(43, 127, 255, 0.55);
-  background: var(--s2-cyan-glow);
-  color: var(--s2-cyan-text);
-}
-
 body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_body {
   display: flex;
   flex-direction: column;
@@ -527,13 +514,19 @@ body .loader_page .home_page .content .model_display .model_detail .basic_inf .v
 }
 
 body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_action.primary {
-  border-color: rgba(43, 127, 255, 0.65);
-  background: var(--s2-cyan-glow);
-  color: var(--s2-cyan-text);
+  border-color: var(--s2-line-2);
+  background: var(--s2-card-2);
+  color: var(--s2-tx);
+}
+
+body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_action.primary:not(.active):hover {
+  border-color: var(--s2-tx-3);
+  background: var(--s2-card);
 }
 
 body .loader_page .home_page .content .model_display .model_detail .basic_inf .version_action.primary.active {
   border-color: var(--s2-cyan);
+  background: var(--s2-cyan-glow);
   color: var(--s2-cyan-text);
   cursor: default;
 }

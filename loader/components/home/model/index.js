@@ -1,7 +1,7 @@
 import ModelList from "./list/index.js";
 import ModelDetail from "./detail/index.js";
 import DownloadModal from "../../public/downloadModal.js";
-import { ARCH_OTHER } from "../../../static/js/public.js";
+import { ARCH_OTHER, sameModelSelection } from "../../../static/js/public.js";
 import { getApi } from "../../../static/js/api.js";
 // import { api } from "/scripts/api.js";
 import { notify } from "../../../static/js/notify.js";
@@ -94,25 +94,39 @@ export default {
       immediate: true,
       deep: true,
     },
+    selectedWidget: {
+      handler(value) {
+        this.activeWidget = value;
+        if (this.allList.length) this.filterList(this.searchParameter);
+      },
+      immediate: true,
+    },
     // 底模筛选（顶栏下拉写入 searchParameter.arch，由上面的 searchParameter watcher 触发重过滤）
   },
   data() {
     return {
       curList: [],
       selectedModel: null,
+      activeWidget: null,
       downloadOpen: false,
       metadataVersion: 0,
     };
   },
   methods: {
+    activateModel(model) {
+      const value = model.data || model.name;
+      this.node.CSsetModelWidget(value);
+      this.activeWidget = value;
+      this.selectedModel = model;
+    },
     // Use model
-    useModel(model) {
+    useModel(model, close = true) {
       let renderer = this.renderer;
       let node = this.node;
       if (!node) return;
       if (!renderer?.rendering) {
-        node.CSsetModelWidget(model.data || model.name);
-        window.parent.postMessage({ type: "close_loader_page" }, "*");
+        this.activateModel(model);
+        if (close) window.parent.postMessage({ type: "close_loader_page" }, "*");
         return;
       }
       this.$confirmBox({
@@ -122,8 +136,8 @@ export default {
         accept: () => {
           // 点击确认调用
           renderer?.stop();
-          node.CSsetModelWidget(model.data || model.name);
-          window.parent.postMessage({ type: "close_loader_page" }, "*");
+          this.activateModel(model);
+          if (close) window.parent.postMessage({ type: "close_loader_page" }, "*");
         },
         refuse: () => {},
       });
@@ -171,12 +185,12 @@ export default {
       this.sortList(searchParameter.sort, newList);
       this.curList = newList;
       this.selectedModel = false;
-      if (this.selectedWidget === null) {
+      if (this.activeWidget == null) {
         this.selectedModel = this.curList[0] || false;
         return;
       }
       for (let i = 0; i < this.curList.length; i++) {
-        if (this.curList[i].name === this.selectedWidget) {
+        if (sameModelSelection(this.curList[i].data || this.curList[i].name, this.activeWidget)) {
           this.selectedModel = this.curList[i] || false;
           return;
         }
@@ -245,7 +259,7 @@ export default {
   template: `
             <div class="model_display">
                 <ModelList v-if="curList.length > 0" :curList="curList" :all-list="allList" :selected-model="selectedModel" :column="column" @changeSelectedModel="changeSelectedModel" @useModel="useModel" @openDownload="openDownload" @refreshMetadata="refreshMetadata" />
-                <ModelDetail v-if="curList.length > 0" :all-list="allList" :model="selectedModel" :selected-widget="selectedWidget" :metadata-version="metadataVersion" @changeSelectedModel="changeSelectedModel" @modifyCover="modifyCover" @modifyName="modifyName" @refreshMetadata="refreshMetadata" @useModel="useModel" />
+                <ModelDetail v-if="curList.length > 0" :all-list="allList" :model="selectedModel" :selected-widget="activeWidget" :metadata-version="metadataVersion" @changeSelectedModel="changeSelectedModel" @modifyCover="modifyCover" @modifyName="modifyName" @refreshMetadata="refreshMetadata" @useModel="useModel" />
                 <DownloadModal v-if="downloadOpen" :mtype="currentMtype()" :category="currentCategory()" @close="downloadOpen = false" />
                 <div v-if="curList.length === 0" class="empty">
                   <p v-if="searchParameter.key">{{$t('home.searchValue')}}: {{searchParameter.key}}</p>

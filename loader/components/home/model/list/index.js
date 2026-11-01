@@ -320,15 +320,19 @@ export default {
       ]);
     },
 
-    // 优先打开当前文件对应的 Civitai 发布页；updated 版本页仅作兼容兜底。
+    // 只打开当前文件对应的发布页，不把“更新版本”或搜索页冒充原网站。
     openModelSite(item) {
-      const url = item?.url || item?.update?.url;
+      const modelId = String(item?.modelId || "").trim();
+      const versionId = String(item?.versionId || "").trim();
+      const fallbackUrl = modelId
+        ? `https://civitai.com/models/${encodeURIComponent(modelId)}${versionId ? `?modelVersionId=${encodeURIComponent(versionId)}` : ""}`
+        : "";
+      const url = item?.url || fallbackUrl;
       if (url) {
-        window.open(url, "_blank");
+        window.open(url, "_blank", "noopener,noreferrer");
         return;
       }
-      const keyword = encodeURIComponent(String(item?.name || "").replace(/\\/g, "/").split("/").pop() || "");
-      window.open(`https://civitai.com/search/models?query=${keyword}`, "_blank");
+      this.$message({ type: "error", message: this.$t("home.model.openSiteFailed") });
     },
 
     // 打开本地存放目录

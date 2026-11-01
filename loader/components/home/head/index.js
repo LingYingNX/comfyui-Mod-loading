@@ -98,6 +98,8 @@ export default {
       fetching: false,
       archOpen: false,
       archCloseTimer: null,
+      archMenuWidth: 0,
+      archResizeFrame: null,
       task: { total: 0, done: 0, current: "" },
       search: {
         key: "",
@@ -154,6 +156,7 @@ export default {
   mounted() {
     document.addEventListener("click", this.onDocumentClick);
     document.addEventListener("keydown", this.onDocumentKeydown);
+    window.addEventListener("resize", this.onArchResize);
   },
   watch: {
     // 左侧导航（或任何人）改了共享的底模筛选 → 顶栏按钮文案跟着变。
@@ -176,13 +179,58 @@ export default {
       deep: true,
       immediate: true,
     },
+    archOptions: {
+      handler() {
+        this.$nextTick(this.measureArchMenu);
+      },
+      deep: true,
+      immediate: true,
+    },
   },
   beforeDestroy() {
     document.removeEventListener("click", this.onDocumentClick);
     document.removeEventListener("keydown", this.onDocumentKeydown);
+    window.removeEventListener("resize", this.onArchResize);
     if (this.archCloseTimer) clearTimeout(this.archCloseTimer);
+    if (this.archResizeFrame) cancelAnimationFrame(this.archResizeFrame);
   },
   methods: {
+    // 锁定完整选项集所需的宽度，避免切换筛选后菜单跳动。
+    measureArchMenu() {
+      const menu = this.$refs.archMenu;
+      const button = this.$refs.archBtn;
+      const list = this.$refs.archList;
+      if (!menu || !button || !list) return;
+
+      const listWidth = list.style.width;
+      list.style.width = "max-content";
+      const menuWidth = list.getBoundingClientRect().width;
+      list.style.width = listWidth;
+
+      const probe = button.cloneNode(true);
+      probe.classList.remove("open");
+      probe.style.position = "absolute";
+      probe.style.width = "auto";
+      probe.style.visibility = "hidden";
+      probe.style.pointerEvents = "none";
+      menu.appendChild(probe);
+      const value = probe.querySelector(".arch_btn_value");
+      let triggerWidth = 0;
+      this.archOptions.forEach((item) => {
+        value.textContent = item.name;
+        triggerWidth = Math.max(triggerWidth, probe.getBoundingClientRect().width);
+      });
+      probe.remove();
+
+      this.archMenuWidth = Math.ceil(Math.max(menuWidth, triggerWidth));
+    },
+    onArchResize() {
+      if (this.archResizeFrame) cancelAnimationFrame(this.archResizeFrame);
+      this.archResizeFrame = requestAnimationFrame(() => {
+        this.measureArchMenu();
+        this.archResizeFrame = null;
+      });
+    },
     // Change sorting method
     changeSort(value) {
       const data = this.$t("home.head.categoryList")[value].value;
@@ -275,15 +323,16 @@ export default {
       });
     },
     async runFetch(mtype) {
+      const names = this.allList.map((item) => item?.name).filter(Boolean);
       this.fetching = true;
-      this.task = { total: this.allList.length, done: 0, current: "" };
+      this.task = { total: names.length, done: 0, current: "" };
       try {
         const resp = await getApi().fetchApi("/cs/fetch_metadata", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mtype,
-            names: [],
+            names,
             skip_locked: true,
             overwrite_prompts: false,
             api_key: this.$store.state.config.civitai || "",
@@ -380,18 +429,17 @@ export default {
                         <span @click="handleSearch"><em class="iconfont icon-search"></em></span>
                     </div>
                     <HoverMenu icon="icon-exchange" :list="$t('home.head.categoryList')" @changeValue= "changeSort" />
-                    <div class="arch_menu" @mouseenter="onArchMouseEnter" @mouseleave="onArchMouseLeave">
-                        <button class="arch_btn" type="button" :class="{'open': archOpen}" @click.stop="toggleArch" @keydown="onArchKeydown($event)">
+                    <div ref="archMenu" class="arch_menu" :style="archMenuWidth ? { width: archMenuWidth + 'px' } : null" @mouseenter="onArchMouseEnter" @mouseleave="onArchMouseLeave">
+                        <button ref="archBtn" class="arch_btn" type="button" :class="{'open': archOpen}" @click.stop="toggleArch" @keydown="onArchKeydown($event)">
                             <svg class="arch_btn_icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
                             <strong class="arch_btn_value">{{archLabel}}</strong>
-                            <em class="arch_btn_arrow">▼</em>
                         </button>
-                        <div v-if="archOpen" class="arch_list">
+                        <div ref="archList" class="arch_list" :class="{open: archOpen}" :aria-hidden="archOpen ? 'false' : 'true'">
                             <div v-for="item in archOptions" :key="item.key || 'all'" class="arch_item" :class="{selected: search.arch === item.key}" @click.stop="changeArch(item.key)">
                                 <svg v-if="item.dot" class="arch_item_dot" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="5" :fill="item.dot"/></svg>
                                 <span class="arch_item_name">{{item.name}}</span>
                                 <span class="arch_item_right">
-                                    <span v-if="search.arch === item.key" class="arch_item_mark">●</span>
+                                    <span class="arch_item_mark" :class="{active: search.arch === item.key}" aria-hidden="true">●</span>
                                     <span class="arch_item_count">{{item.count}}</span>
                                 </span>
                             </div>

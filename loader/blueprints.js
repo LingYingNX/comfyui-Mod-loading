@@ -282,14 +282,13 @@ class BluePrints {
       return;
     }
     node.CSnative = true;
-    let btn = node.addWidget("button", "+", null, callBack);
+    const managerLabel =
+      window.CSvm?.$t?.("modelManagerBtn") || "ComfyUI-Studio 模型管理器";
+    let btn = node.addWidget("button", managerLabel, null, callBack);
     Object.defineProperty(btn, "label", {
       get() {
         const vm = window.CSvm;
-        if (vm?.$t) {
-          return vm.$t("modelManagerBtn");
-        }
-        return "+";
+        return vm?.$t?.("modelManagerBtn") || managerLabel;
       },
       set(_) {},
     });

@@ -77,11 +77,11 @@ export default {
       }
     },
     useVersion(model) {
-      this.$emit("useModel", model);
+      this.$emit("useModel", model, false);
     },
     // Click to use
     useModel() {
-      this.$emit("useModel", this.model);
+      this.$emit("useModel", this.model, true);
     },
     changeVersion(model) {
       this.$emit("changeSelectedModel", model);

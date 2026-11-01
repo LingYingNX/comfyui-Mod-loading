@@ -1,4 +1,5 @@
 import { getApi } from "../../../../../static/js/api.js";
+import { sameModelSelection } from "../../../../../static/js/public.js";
 
 function csPost(path, body) {
   return getApi()
@@ -80,7 +81,7 @@ export default {
       return name.replace(/\.[^.]+$/, "") || "—";
     },
     versionLabel(item) {
-      return String(item?.versionName || "").trim() || this.versionFileLabel(item);
+      return this.versionFileLabel(item);
     },
     versionKey(item) {
       return `${item?.mtype || ""}:${item?.name || ""}`;
@@ -121,15 +122,8 @@ export default {
       const text = String(value || "").trim();
       return text ? text.replace(/\s*[x×]\s*/i, " × ") : "—";
     },
-    sameSelection(left, right) {
-      if (left === right) return true;
-      if (left == null || right == null) return false;
-      const leftValue = typeof left === "object" ? left.content ?? left.value : left;
-      const rightValue = typeof right === "object" ? right.content ?? right.value : right;
-      return String(leftValue) === String(rightValue);
-    },
     isActive(item) {
-      return this.sameSelection(item?.data || item?.name, this.selectedWidget);
+      return sameModelSelection(item?.data || item?.name, this.selectedWidget);
     },
     isSelected(item) {
       return item === this.model;
@@ -206,7 +200,7 @@ export default {
     <div class="version_panel">
       <div class="version_stack">
         <article v-for="item in versionList" :key="item.name" class="version_item"
-                 :class="{ active: isActive(item), selected: isSelected(item), collapsed: !isExpanded(item) }">
+                 :class="{ selected: isSelected(item), collapsed: !isExpanded(item) }">
           <div class="version_item_head">
             <button type="button" class="version_expand" @click="toggleExpanded(item)"
                     :aria-expanded="isExpanded(item) ? 'true' : 'false'"
@@ -220,9 +214,9 @@ export default {
               <span class="version_name">{{versionLabel(item)}}</span>
               <span class="version_arch" :class="archClass(item)">{{archLabel(item)}}</span>
             </button>
-            <span class="version_state" :class="{active: isActive(item)}">
+            <span v-if="!isActive(item)" class="version_state">
               <i aria-hidden="true"></i>
-              {{ isActive(item) ? $t("home.modelDetail.basicInf.activeVersion") : $t("home.modelDetail.basicInf.installedVersion") }}
+              {{ $t("home.modelDetail.basicInf.installedVersion") }}
             </span>
           </div>
 

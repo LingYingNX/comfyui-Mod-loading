@@ -216,21 +216,29 @@ body .loader_page .home_page .content .head .left .render_button:hover {
 body .loader_page .home_page .content .head .left .arch_menu {
   position: relative;
   display: inline-block;
+  height: 1.9vw;
+  min-height: 34px;
+  min-width: 6.5rem;
 }
 
 body .loader_page .home_page .content .head .left .arch_btn {
   box-sizing: border-box;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
-  gap: 0.25vw;
+  gap: 0.3vw;
+  width: 100%;
   background: var(--s2-card);
   border: 1px solid var(--s2-line);
   border-radius: var(--s2-r-btn, var(--s2-r-sm));
   color: var(--s2-tx-2);
-  font-size: 0.8rem;
+  font-size: 1rem;
   height: 1.9vw;
   min-height: 34px;
-  padding: 0 0.5vw;
+  padding: 0 0.9vw;
   cursor: pointer;
   transition: background var(--s2-duration) var(--s2-ease),
     border-color var(--s2-duration) var(--s2-ease),
@@ -245,47 +253,55 @@ body .loader_page .home_page .content .head .left .arch_btn.open {
 }
 
 body .loader_page .home_page .content .head .left .arch_btn:hover .arch_btn_icon,
-body .loader_page .home_page .content .head .left .arch_btn.open .arch_btn_icon,
-body .loader_page .home_page .content .head .left .arch_btn:hover .arch_btn_arrow,
-body .loader_page .home_page .content .head .left .arch_btn.open .arch_btn_arrow {
+body .loader_page .home_page .content .head .left .arch_btn.open .arch_btn_icon {
   color: var(--s2-cyan-text);
 }
 
-/* 按钮左侧的小图标：模板里是 🧩，按反面清单换成内联 SVG（12px -> 0.63vw） */
+/* 按钮左侧的小图标与排序按钮同字号 */
 body .loader_page .home_page .content .head .left .arch_btn_icon {
-  width: 0.63vw;
-  height: 0.63vw;
+  width: 1rem;
+  height: 1rem;
   flex: 0 0 auto;
   color: var(--s2-tx-3);
 }
 
 /* 当前选中项：模板里是青色加粗（#selectedArchText → var(--accent-cyan)） */
 body .loader_page .home_page .content .head .left .arch_btn_value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--s2-cyan-text);
   font-weight: 600;
   white-space: nowrap;
-}
-
-body .loader_page .home_page .content .head .left .arch_btn_arrow {
-  color: var(--s2-tx-3);
-  font-size: 0.7rem;
-  font-style: normal;
-  line-height: 1;
 }
 
 body .loader_page .home_page .content .head .left .arch_list {
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
   z-index: 100;
-  width: auto;
+  width: 100%;
   box-sizing: border-box;
-  padding: 0.17vw 0;
+  padding: 0.17vw 0.3vw;
   background: var(--s2-panel);
   border: 1px solid var(--s2-line);
   border-radius: var(--s2-r-sm);
   box-shadow: var(--s2-shadow-menu);
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease-out,
+    transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    visibility 0s linear 180ms;
+}
+
+body .loader_page .home_page .content .head .left .arch_list.open {
+  visibility: visible;
+  pointer-events: auto;
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
 }
 
 body .loader_page .home_page .content .head .left .arch_item {
@@ -313,8 +329,7 @@ body .loader_page .home_page .content .head .left .arch_item_dot {
 
 body .loader_page .home_page .content .head .left .arch_item_name {
   flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: max-content;
 }
 
 body .loader_page .home_page .content .head .left .arch_item_right {
@@ -329,6 +344,11 @@ body .loader_page .home_page .content .head .left .arch_item_mark {
   font-size: 0.7rem;
   line-height: 1;
   color: var(--s2-cyan-text);
+  visibility: hidden;
+}
+
+body .loader_page .home_page .content .head .left .arch_item_mark.active {
+  visibility: visible;
 }
 
 body .loader_page .home_page .content .head .left .arch_item:hover {
@@ -341,7 +361,6 @@ body .loader_page .home_page .content .head .left .arch_item.selected {
   border-color: var(--s2-cyan);
   outline: none;
   color: var(--s2-cyan-text);
-  font-weight: 600;
 }
 
 body .loader_page .home_page .content .head .left .arch_item_count {
