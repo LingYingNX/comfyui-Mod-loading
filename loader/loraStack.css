@@ -1,0 +1,1068 @@
+.ls-panel,
+.ls-picker,
+.ls-picker-preview {
+  /* ComfyUI 原生主题变量；node 底色由画布绘制，面板保持透明才能跟随主题。 */
+  --ls-bg: transparent;
+  --ls-card: var(--secondary-background, #202124);
+  --ls-card-2: color-mix(in srgb, var(--fg-color, #f3f4f6) 8%, transparent);
+  --ls-inset: var(--comfy-input-bg, #141416);
+  --ls-line: color-mix(in srgb, var(--fg-color, #f3f4f6) 16%, transparent);
+  --ls-line-2: color-mix(in srgb, var(--fg-color, #f3f4f6) 32%, transparent);
+  --ls-blue: var(--primary-background, #2b7fff);
+  --ls-blue-text: var(--primary-background, #60a5fa);
+  --ls-blue-glow: color-mix(in srgb, var(--primary-background, #2b7fff) 18%, transparent);
+  --ls-tx: var(--fg-color, #f3f4f6);
+  --ls-tx-2: var(--muted-foreground, #9ca3af);
+  --ls-tx-3: var(--muted-foreground, #858d9a);
+  --ls-warn: #f59e0b;
+  --ls-danger: var(--danger, #fda4af);
+}
+
+.ls-panel {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 5px;
+  overflow: hidden;
+  color: var(--ls-tx);
+  background: var(--ls-bg);
+  border: 0;
+  border-radius: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+/* 空白与卡片背景透传给 LiteGraph，只让真实控件接收鼠标：否则整块面板会吞掉画布平移/缩放。
+   pointer-events 会沿 DOM 继承，所以容器一律 none，控件逐个 auto。 */
+.ls-panel,
+.ls-panel .ls-list,
+.ls-panel .ls-slot,
+.ls-panel .ls-slot-top,
+.ls-panel .ls-prompts,
+.ls-panel .ls-custom,
+.ls-panel .ls-toolbar,
+.ls-panel .ls-chip-box,
+.ls-panel .ls-chips,
+.ls-panel .ls-custom-chips,
+.ls-panel .ls-set-row,
+.ls-panel .ls-set-switch {
+  pointer-events: none;
+}
+
+.ls-panel .ls-list.is-scrollable,
+.ls-panel .ls-chip-box.is-scrollable {
+  pointer-events: auto;
+}
+
+.ls-panel button,
+.ls-panel input,
+.ls-panel textarea,
+.ls-panel .ls-weight-wrap {
+  pointer-events: auto;
+}
+
+/* ComfyUI 的 .dom-widget 包裹层带内联 pointer-events:auto，空白处仍会截住画布手势；
+   只对本面板的包裹层解除，控件自身已声明 auto，不受影响。 */
+.dom-widget:has(> .ls-panel) {
+  pointer-events: none !important;
+}
+
+.ls-panel *,
+.ls-panel *::before,
+.ls-panel *::after,
+.ls-picker,
+.ls-picker-preview,
+.ls-picker *,
+.ls-picker *::before,
+.ls-picker *::after,
+.ls-picker-preview * {
+  box-sizing: border-box;
+}
+
+.ls-panel button,
+.ls-panel input,
+.ls-panel select,
+.ls-panel textarea,
+.ls-picker button,
+.ls-picker input {
+  font: inherit;
+}
+
+.ls-panel button:focus-visible,
+.ls-panel input:focus-visible,
+.ls-panel select:focus-visible,
+.ls-panel textarea:focus-visible {
+  outline: 2px solid var(--ls-blue);
+  outline-offset: 1px;
+}
+
+.ls-toolbar {
+  flex: 0 0 auto;
+  min-height: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 0 1px 1px;
+  border-bottom: 1px solid var(--ls-line);
+}
+
+.ls-toolbar-summary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ls-title-mark {
+  width: 13px;
+  height: 13px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--ls-blue-text);
+}
+
+.ls-title-mark svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ls-slot-count {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  color: var(--ls-blue-text);
+  background: var(--ls-blue-glow);
+  border: 0;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.ls-head-hint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ls-tx-3);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ls-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-right: 1px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ls-line-2) transparent;
+}
+
+.ls-list::-webkit-scrollbar,
+.ls-chip-box::-webkit-scrollbar,
+.ls-custom-chips::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.ls-list::-webkit-scrollbar-track,
+.ls-chip-box::-webkit-scrollbar-track,
+.ls-custom-chips::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ls-list::-webkit-scrollbar-thumb,
+.ls-chip-box::-webkit-scrollbar-thumb,
+.ls-custom-chips::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ls-line-2);
+}
+
+.ls-slot {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 2px 3px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  transition:
+    opacity 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 120ms ease,
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ls-slot + .ls-slot {
+  border-top: 1px solid var(--ls-line);
+}
+
+.ls-slot.is-collapsed {
+  padding-bottom: 2px;
+}
+
+.ls-slot.is-collapsed .ls-prompts,
+.ls-slot.is-collapsed .ls-custom {
+  display: none;
+}
+
+.ls-slot.is-dragging {
+  opacity: 0.5;
+  background: var(--ls-blue-glow);
+  box-shadow: 0 12px 28px color-mix(in srgb, #000 42%, transparent);
+  transform: scale(0.995);
+  pointer-events: none;
+}
+
+.ls-slot.ls-drop-before::before,
+.ls-slot.ls-drop-after::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  background: var(--ls-blue);
+  border-radius: 999px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ls-blue) 70%, transparent);
+  pointer-events: none;
+}
+
+.ls-slot.ls-drop-before::before {
+  top: -5px;
+}
+
+.ls-slot.ls-drop-after::after {
+  bottom: -5px;
+}
+
+.ls-slot-top {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ls-expand {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--ls-tx-3);
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.ls-expand:hover {
+  color: var(--ls-tx);
+  background: var(--ls-card-2);
+}
+
+.ls-expand svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ls-expand.is-expanded svg {
+  transform: rotate(90deg);
+}
+
+.ls-drag {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--ls-tx-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.ls-drag:hover {
+  color: var(--ls-blue-text);
+  background: var(--ls-card-2);
+  border-color: var(--ls-line-2);
+}
+
+.ls-drag:active {
+  cursor: grabbing;
+}
+
+.ls-drag svg,
+.ls-remove svg,
+.ls-add svg,
+.ls-retry svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ls-slot-index {
+  flex: 0 0 16px;
+  color: var(--ls-tx-3);
+  font: 700 10px/1 "Cascadia Mono", Consolas, monospace;
+  text-align: center;
+}
+
+.ls-select-wrap {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.ls-select {
+  width: 100%;
+  height: 19px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  overflow: hidden;
+  color: var(--ls-tx);
+  background: var(--ls-inset);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  font-size: 10px;
+  text-align: left;
+  transition:
+    border-color 100ms ease,
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ls-select:hover {
+  border-color: var(--ls-line-2);
+}
+
+.ls-select:focus-visible {
+  outline: 2px solid var(--ls-blue);
+  outline-offset: 1px;
+}
+
+.ls-select.is-empty {
+  color: var(--ls-tx-3);
+}
+
+.ls-select-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ls-select-caret {
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  border-left: 3.5px solid transparent;
+  border-right: 3.5px solid transparent;
+  border-top: 4px solid var(--ls-tx-3);
+}
+
+.ls-picker {
+  position: fixed;
+  z-index: 10020;
+  width: 320px;
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--fg-color, #f3f4f6);
+  background: var(--comfy-menu-bg, #18191c);
+  border: 1px solid var(--ls-line-2, #34363c);
+  border-radius: 6px;
+  box-shadow: 0 10px 25px color-mix(in srgb, #000 42%, transparent);
+  transform: translateY(-2px);
+  transform-origin: top left;
+  pointer-events: auto;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 125ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 125ms cubic-bezier(0.23, 1, 0.32, 1),
+    visibility 125ms;
+}
+
+.ls-picker[data-visible="true"] {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ls-picker-search {
+  flex: 0 0 auto;
+  margin: 4px;
+  padding: 3px 6px;
+  background: var(--comfy-input-bg, #141518);
+  border: 1px solid var(--ls-line, #34363c);
+  border-radius: 4px;
+}
+
+.ls-picker-search:focus-within {
+  border-color: var(--ls-blue, #2b7fff);
+}
+
+.ls-picker-input {
+  width: 100%;
+  padding: 0;
+  color: var(--fg-color, #f3f4f6);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.ls-picker-tree {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 4px 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.ls-picker-category {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 2px 5px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.ls-picker-category:hover {
+  background: color-mix(in srgb, var(--fg-color, #f3f4f6) 7%, transparent);
+}
+
+.ls-picker-arrow {
+  width: 0;
+  height: 0;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  border-left: 4px solid var(--muted-foreground, #aeb5bf);
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ls-picker-category[aria-expanded="true"] .ls-picker-arrow {
+  transform: rotate(90deg);
+}
+
+.ls-picker-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ls-picker-count {
+  color: var(--muted-foreground, #9ca3af);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ls-picker-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 1px 0 3px 16px;
+}
+
+.ls-picker-item {
+  width: 100%;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  padding: 2px 6px;
+  overflow: hidden;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+}
+
+.ls-picker-item:hover {
+  background: color-mix(in srgb, var(--fg-color, #f3f4f6) 8%, transparent);
+}
+
+.ls-picker-item.is-selected {
+  color: var(--primary-foreground, #fff);
+  background: color-mix(in srgb, var(--primary-background, #4b9fff) 22%, transparent);
+}
+
+.ls-picker-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ls-picker-empty {
+  padding: 12px 6px;
+  color: var(--muted-foreground, #9ca3af);
+  font-size: 11px;
+  text-align: center;
+}
+
+.ls-picker-hint:empty {
+  display: none;
+}
+
+.ls-picker-preview {
+  position: fixed;
+  z-index: 10021;
+  width: 220px;
+  padding: 5px;
+  color: var(--fg-color, #ececef);
+  background: var(--comfy-menu-bg, #18191c);
+  border: 1px solid var(--ls-line-2, #3a3d43);
+  border-radius: 6px;
+  box-shadow: 0 10px 25px color-mix(in srgb, #000 42%, transparent);
+  transform: translateY(-2px);
+  transform-origin: top left;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 100ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1),
+    visibility 100ms;
+}
+
+.ls-picker-preview[data-visible="true"] {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ls-picker-image {
+  display: none;
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  background: color-mix(in srgb, #000 30%, transparent);
+  border-radius: 4px;
+}
+
+.ls-picker-image[data-visible="true"] {
+  display: block;
+}
+
+.ls-picker-caption {
+  padding: 4px 2px 0;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 15px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ls-weight-wrap {
+  flex: 0 0 68px;
+  height: 19px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  background: var(--ls-inset);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.ls-weight-wrap:hover {
+  border-color: var(--ls-line-2);
+}
+
+.ls-weight-wrap:focus-visible,
+.ls-weight-wrap.is-scrubbing,
+.ls-weight-wrap.is-editing {
+  border-color: var(--ls-blue);
+  box-shadow: 0 0 0 2px var(--ls-blue-glow);
+  outline: none;
+}
+
+.ls-weight-label {
+  flex: 0 0 auto;
+  color: var(--ls-tx-3);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.ls-weight-value {
+  flex: 1 1 auto;
+  min-width: 32px;
+  padding: 0;
+  color: var(--ls-blue-text);
+  font: 600 10px/1 "Cascadia Mono", Consolas, monospace;
+  text-align: right;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ls-weight-input {
+  width: 36px;
+  min-width: 0;
+  padding: 0;
+  color: var(--ls-blue-text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: 600 10px/1 "Cascadia Mono", Consolas, monospace;
+  text-align: right;
+}
+
+.ls-weight-input[hidden] {
+  display: none;
+}
+
+.ls-remove,
+.ls-retry {
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--ls-tx-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.ls-remove:hover,
+.ls-retry:hover {
+  color: var(--ls-danger, #fda4af);
+  background: color-mix(in srgb, var(--ls-danger, #fda4af) 15%, transparent);
+  border-color: color-mix(in srgb, var(--ls-danger, #fda4af) 35%, transparent);
+}
+
+.ls-remove:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+.ls-prompts {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ls-prompts:empty {
+  display: none;
+}
+
+.ls-status {
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 1px 2px;
+  color: var(--ls-tx-2);
+  font-size: 10px;
+}
+
+.ls-status.is-muted {
+  color: var(--ls-tx-3);
+}
+
+.ls-status.is-loading::before {
+  content: "";
+  flex: 0 0 11px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--ls-line-2);
+  border-top-color: var(--ls-blue);
+  border-radius: 50%;
+  animation: ls-spin 700ms linear infinite;
+}
+
+.ls-status.is-error {
+  color: var(--ls-danger, #fda4af);
+  background: color-mix(in srgb, var(--ls-danger, #fda4af) 8%, transparent);
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--ls-danger, #fda4af) 60%, transparent);
+  border-radius: 0;
+}
+
+@keyframes ls-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ls-set-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+
+.ls-set-switch {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 19px;
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  padding: 1px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--ls-card);
+  border: 0;
+  border-radius: 4px;
+  scrollbar-width: none;
+}
+
+.ls-set-switch::-webkit-scrollbar {
+  display: none;
+}
+
+.ls-set-option {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  min-width: 70px;
+  max-width: 136px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 5px;
+  overflow: hidden;
+  color: var(--ls-tx-3);
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    color 100ms ease,
+    background-color 100ms ease,
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ls-set-option:hover {
+  color: var(--ls-tx);
+}
+
+.ls-set-option.is-active {
+  color: var(--ls-blue-text);
+  background: var(--ls-card-2);
+}
+
+.ls-set-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ls-source-dot {
+  flex: 0 0 5px;
+  width: 4px;
+  height: 4px;
+  background: var(--ls-tx-3);
+  border-radius: 50%;
+}
+
+.ls-source-dot.author {
+  background: var(--ls-blue);
+}
+
+.ls-source-dot.custom {
+  background: var(--ls-warn);
+}
+
+.ls-chip-box {
+  /* 提示词胶囊分组框：浅色底 + 1px 细描边，内层可用高度与原来的 72px 持平。 */
+  flex: 0 0 78px;
+  height: 78px;
+  max-height: 78px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--ls-card);
+  border: 1px solid var(--ls-line);
+  border-radius: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.ls-chip-box::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+  background: transparent;
+}
+
+.ls-chip-box::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.ls-chip-meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--ls-tx-3);
+  font-size: 10px;
+}
+
+.ls-chip-count {
+  color: var(--ls-blue-text);
+  font-weight: 700;
+}
+
+.ls-chips,
+.ls-custom-chips {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 2px;
+}
+
+.ls-custom-chips {
+  max-height: 44px;
+  overflow: auto;
+}
+
+.ls-custom-chips:empty {
+  display: none;
+}
+
+.ls-panel .ls-chip {
+  max-width: 100%;
+  padding: 0 4px;
+  overflow: hidden;
+  color: var(--ls-tx-2);
+  background: var(--ls-card);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 9px;
+  line-height: 1.1;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    color 100ms ease,
+    background-color 100ms ease,
+    border-color 100ms ease,
+    opacity 120ms ease,
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ls-chip:active {
+  transform: scale(0.97);
+}
+
+.ls-add:active {
+  transform: scale(0.97);
+}
+
+.ls-select:active,
+.ls-set-option:active {
+  transform: scale(0.98);
+}
+
+.ls-chip.is-enabled {
+  color: var(--ls-blue-text);
+  background: var(--ls-blue-glow);
+  border-color: color-mix(in srgb, var(--ls-blue) 28%, transparent);
+}
+
+.ls-chip.is-disabled {
+  opacity: 0.48;
+  color: var(--ls-tx-3);
+  background: transparent;
+  border-color: var(--ls-line);
+}
+
+.ls-empty-inline {
+  padding: 1px;
+  color: var(--ls-tx-3);
+  font-size: 10px;
+  font-style: italic;
+}
+
+.ls-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ls-custom-input {
+  width: 100%;
+  min-height: 24px;
+  max-height: 64px;
+  padding: 3px 4px;
+  resize: vertical;
+  color: var(--ls-tx);
+  background: var(--ls-inset);
+  border: 0;
+  border-radius: 4px;
+  outline: none;
+  font: 10px/1.35 "Cascadia Mono", "Microsoft YaHei", Consolas, monospace;
+}
+
+.ls-custom-input::placeholder {
+  color: var(--ls-tx-3);
+}
+
+.ls-custom-input:focus {
+  border-color: var(--ls-blue);
+  box-shadow: 0 0 0 2px var(--ls-blue-glow);
+}
+
+/* 上游 pysssss 只给键盘选中项样式，没有鼠标 hover；只补我们挂的这份下拉。 */
+.ls-autocomplete .pysssss-autocomplete-item:hover {
+  /* 下拉挂在 body 上，拿不到 .ls-panel 里的自定义变量，这里用 ComfyUI 原生变量 + 兜底色。 */
+  background: color-mix(in srgb, var(--primary-background, #2b7fff) 22%, transparent);
+}
+
+.ls-add {
+  flex: 0 0 auto;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px 0 4px;
+  color: var(--ls-tx);
+  background: var(--ls-card);
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  transform-origin: center;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.ls-add:hover {
+  color: var(--ls-blue-text);
+  background: var(--ls-blue-glow);
+  border-color: var(--ls-blue);
+}
+
+.ls-add svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke-width: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-slot,
+  .ls-expand svg,
+  .ls-picker-arrow,
+  .ls-picker,
+  .ls-chip,
+  .ls-add,
+  .ls-select,
+  .ls-set-option {
+    transition-duration: 0.01ms;
+  }
+
+  .ls-picker,
+  .ls-picker-preview {
+    transform: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ls-expand:hover,
+  .ls-drag:hover,
+  .ls-select:hover,
+  .ls-weight-wrap:hover,
+  .ls-remove:hover,
+  .ls-retry:hover,
+  .ls-set-option:hover,
+  .ls-add:hover,
+  .ls-picker-category:hover,
+  .ls-picker-item:hover,
+  .ls-chip:hover {
+    /* Hover is feedback, not an entrance; keep it immediate. */
+    transition: none;
+  }
+
+  .ls-chip:hover {
+    color: var(--ls-tx);
+    border-color: var(--ls-blue);
+    background: var(--ls-card-2);
+  }
+}
+
+@media (max-width: 620px) {
+  .ls-head-hint {
+    display: none;
+  }
+
+  .ls-select-wrap {
+    flex-basis: 120px;
+  }
+}

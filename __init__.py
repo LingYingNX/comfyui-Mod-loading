@@ -11,9 +11,18 @@
   cs_routes_meta    @server.PromptServer 路由（import 时注册）
 """
 from . import cs_routes_models, cs_routes_meta  # noqa: F401  路由在 import 时注册到 PromptServer
+from .cs_lora_stack import (  # noqa: F401  节点与提示词路由在 import 时注册
+    NODE_CLASS_MAPPINGS as LORA_STACK_NODE_CLASS_MAPPINGS,
+    NODE_DISPLAY_NAME_MAPPINGS as LORA_STACK_NODE_DISPLAY_NAME_MAPPINGS,
+)
 from .cs_static import init
 
 init()
 
-NODE_CLASS_MAPPINGS = {}
+NODE_CLASS_MAPPINGS = {
+    **LORA_STACK_NODE_CLASS_MAPPINGS,
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    **LORA_STACK_NODE_DISPLAY_NAME_MAPPINGS,
+}
 WEB_DIRECTORY = "./loader"
