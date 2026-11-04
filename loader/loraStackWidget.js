@@ -11,6 +11,7 @@ const ICONS = {
     drag: '<svg viewBox="0 0 16 20" aria-hidden="true"><circle cx="5" cy="5" r="1.2"/><circle cx="11" cy="5" r="1.2"/><circle cx="5" cy="10" r="1.2"/><circle cx="11" cy="10" r="1.2"/><circle cx="5" cy="15" r="1.2"/><circle cx="11" cy="15" r="1.2"/></svg>',
     chevron: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 6 6-6 6"/></svg>',
     layers: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>',
+    power: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3.5v7"/><path d="M7.5 6.4a6.6 6.6 0 1 0 9 0"/></svg>',
     refresh: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 8a6 6 0 1 0 .2 4"/><path d="M16 4v4h-4"/></svg>',
 };
 
@@ -82,6 +83,7 @@ export function createSlot() {
         lora: "",
         strength: 1,
         expanded: true,
+        enabled: true,
         set: "",
         disabled: {},
         custom: "",
@@ -119,8 +121,9 @@ export function normalizeState(raw) {
         return {
             id,
             lora: String(source.lora || "").trim(),
-            strength: Number.isFinite(strength) ? clamp(strength, -100, 100) : 1,
+            strength: Number.isFinite(strength) ? clamp(strength, 0, 100) : 1,
             expanded: source.expanded !== false,
+            enabled: source.enabled !== false,
             set: String(source.set || "").trim(),
             disabled,
             custom: String(source.custom || ""),
@@ -165,10 +168,44 @@ export function splitPromptTokens(text) {
     return tokens;
 }
 
+// 自定义追加词与提示词套装同一切法：顶层逗号/换行分隔，括号内的逗号保持完整。
+// 返回原始分片（raw 保原样、sep 是分隔符），关掉的词才能按位置在输入框里变灰。
+function splitCustomSegments(text) {
+    const segments = [];
+    let raw = "";
+    let depth = 0;
+    let escaped = false;
+    const flush = (sep) => {
+        segments.push({ raw, token: raw.trim(), sep });
+        raw = "";
+    };
+    for (const char of String(text || "")) {
+        if (escaped) {
+            raw += char;
+            escaped = false;
+            continue;
+        }
+        if (char === "\\") {
+            raw += char;
+            escaped = true;
+            continue;
+        }
+        if (char === "(" || char === "[" || char === "{") depth += 1;
+        else if (char === ")" || char === "]" || char === "}") depth = Math.max(0, depth - 1);
+
+        if ((char === "," || char === "\n") && depth === 0) {
+            flush(char);
+            continue;
+        }
+        raw += char;
+    }
+    flush("");
+    return segments;
+}
+
 export function splitCustomPrompts(text) {
-    return String(text || "")
-        .split(/\r?\n/)
-        .map((line) => line.trim())
+    return splitCustomSegments(text)
+        .map((segment) => segment.token)
         .filter(Boolean);
 }
 
@@ -315,6 +352,18 @@ function ensurePicker() {
     input.addEventListener("keydown", (event) => {
         if (event.key === "Escape") closePicker({ restoreFocus: true });
     });
+    // 弹层浮在节点面板上方，若把滚轮放行会被 _handleWheelCapture 按矩形判定转发给画布缩放，
+    // 所以这里自己接管：指针在弹层里一律滚列表（列表内保持原生滚动）。
+    const scrollListOnWheel = (event) => {
+        if (event.__lsForwarded) return;
+        if (event.deltaY === 0 && event.deltaX === 0) return;
+        if (tree.contains(event.target)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.deltaY) tree.scrollTop += event.deltaY;
+    };
+    root.addEventListener("wheel", scrollListOnWheel, { passive: false });
+    preview.addEventListener("wheel", scrollListOnWheel, { passive: false });
     root.addEventListener("pointerdown", stopShellEvent);
     root.addEventListener("click", stopShellEvent);
     tree.addEventListener("pointerover", (event) => {
@@ -364,6 +413,24 @@ function showPickerPreview(name, item) {
     });
 }
 
+// 弹层底部常驻行：说明当前按哪个底模架构收敛了候选，并给一个放开/恢复的出口。
+function renderPickerFilterHint(view) {
+    const filter = view.loraFilter;
+    if (!picker) return;
+    picker.hint.replaceChildren();
+    if (!filter) return;
+    const text = view.loraBypass
+        ? `已显示全部 ${view.loraCatalog.length} 个 LoRA`
+        : `已按 ${filter.label} 筛选 · ${view.loraNames.length} 个`;
+    const toggle = element("button", "ls-hint-toggle", view.loraBypass ? "恢复筛选" : "显示全部");
+    toggle.type = "button";
+    toggle.addEventListener("click", () => {
+        view.loraBypass = !view.loraBypass;
+        view._applyLoraFilter();
+    });
+    picker.hint.append(element("span", "", text), toggle);
+}
+
 function renderPickerTree() {
     if (!picker || !pickerSession) return;
     const { view, slot } = pickerSession;
@@ -373,7 +440,7 @@ function renderPickerTree() {
         : view.loraNames;
     const names = all.filter((name) => !query || name.toLowerCase().includes(query));
     picker.tree.replaceChildren();
-    picker.hint.textContent = "";
+    renderPickerFilterHint(view);
 
     if (!names.length) {
         picker.tree.append(
@@ -389,9 +456,6 @@ function renderPickerTree() {
         group.push({ filename, name });
         groups.set(category, group);
     }
-
-    const selected = splitLoraName(slot.lora || "").category;
-    if (!picker.expanded.size && slot.lora) picker.expanded.add(selected);
 
     for (const category of orderCategories(groups.keys())) {
         const models = groups.get(category);
@@ -456,7 +520,16 @@ function openPicker(view, slot, trigger) {
     ui.input.value = "";
     const saved = readStoredList(EXPANDED_KEY);
     ui.expanded = new Set(saved);
+    // 没记住展开状态时，打开时展开一次当前选中项所在分类；只在打开时做，
+    // 否则点箭头折叠最后一个分类会被这里立刻顶回来。
+    if (!ui.expanded.size && slot.lora) {
+        ui.expanded.add(splitLoraName(slot.lora).category);
+    }
+    // 每次打开都回到「筛选态」，一键放开只对当次浏览有效。
+    view.loraBypass = false;
+    view._applyLoraFilter();
     pickerSession = { view, slot, trigger };
+    view.options.onPickerOpen?.(view, slot);
     renderPickerTree();
     ui.root.dataset.visible = "true";
 
@@ -492,6 +565,10 @@ export class LoraStackView {
         this.options = options;
         this.state = normalizeState(options.initialState);
         this.loraNames = [];
+        this.loraCatalog = [];
+        this.loraFilter = null;
+        this.loraBypass = false;
+        this._filterStateKey = "";
         this.promptCache = new Map();
         this._switchLayouts = [];
         this._slotElements = new Map();
@@ -522,14 +599,36 @@ export class LoraStackView {
         const next = [...new Set((Array.isArray(names) ? names : []).map(String))]
             .filter(Boolean)
             .sort((left, right) => left.localeCompare(right, "zh-CN"));
-        if (
-            next.length === this.loraNames.length &&
-            next.every((value, index) => value === this.loraNames[index])
-        ) {
-            return;
-        }
-        this.loraNames = next;
-        if (pickerSession?.view === this) renderPickerTree();
+        if (this._sameNames(next, this.loraCatalog)) return;
+        this.loraCatalog = next;
+        this._applyLoraFilter();
+    }
+
+    // filter: null 或 { family, label, match(name) -> boolean }；只收敛候选列表，不动槽位里已选中的模型。
+    setLoraFilter(filter) {
+        this.loraFilter = filter || null;
+        if (!filter) this.loraBypass = false;
+        this._applyLoraFilter();
+    }
+
+    _sameNames(left, right) {
+        return (
+            left.length === right.length &&
+            left.every((value, index) => value === right[index])
+        );
+    }
+
+    _applyLoraFilter() {
+        const filter = this.loraBypass ? null : this.loraFilter;
+        const previous = this.loraNames;
+        this.loraNames = filter?.match
+            ? this.loraCatalog.filter((name) => filter.match(name))
+            : this.loraCatalog;
+        const stateKey = filter?.label || "";
+        const changed =
+            !this._sameNames(this.loraNames, previous) || stateKey !== this._filterStateKey;
+        this._filterStateKey = stateKey;
+        if (changed && pickerSession?.view === this) renderPickerTree();
     }
 
     setState(raw, { render = true, preservePromptCache = true } = {}) {
@@ -573,8 +672,7 @@ export class LoraStackView {
         const mark = element("span", "ls-title-mark");
         mark.innerHTML = ICONS.layers;
         const count = element("span", "ls-slot-count", `${this.state.slots.length} 个 LoRA`);
-        const hint = element("span", "ls-head-hint", "顺序同时影响 LoRA 与提示词");
-        titleWrap.append(mark, count, hint);
+        titleWrap.append(mark, count);
 
         const add = iconButton("ls-add", ICONS.add, "添加 LoRA 槽");
         add.append(element("span", "", "LoRA"));
@@ -615,6 +713,7 @@ export class LoraStackView {
     _renderSlot(slot, index) {
         const card = element("article", "ls-slot");
         card.classList.toggle("is-collapsed", slot.expanded === false);
+        card.classList.toggle("is-off", slot.enabled === false);
         card.dataset.slotId = slot.id;
         card.setAttribute("role", "listitem");
         this._slotElements.set(slot.id, card);
@@ -662,10 +761,25 @@ export class LoraStackView {
         selectWrap.append(select);
 
         const weightWrap = element("div", "ls-weight-wrap");
+        const power = iconButton(
+            "ls-power",
+            ICONS.power,
+            slot.enabled === false ? "开启此 LoRA" : "关闭此 LoRA"
+        );
+        power.setAttribute("aria-pressed", String(slot.enabled !== false));
+        power.addEventListener("click", () => {
+            slot.enabled = slot.enabled === false;
+            const enabled = slot.enabled !== false;
+            power.setAttribute("aria-pressed", String(enabled));
+            power.title = enabled ? "关闭此 LoRA" : "开启此 LoRA";
+            power.setAttribute("aria-label", power.title);
+            card.classList.toggle("is-off", !enabled);
+            this._syncState(true);
+        });
         weightWrap.tabIndex = 0;
         weightWrap.setAttribute("role", "spinbutton");
         weightWrap.setAttribute("aria-label", `LoRA ${index + 1} 权重`);
-        weightWrap.setAttribute("aria-valuemin", "-100");
+        weightWrap.setAttribute("aria-valuemin", "0");
         weightWrap.setAttribute("aria-valuemax", "100");
         weightWrap.setAttribute("aria-valuenow", Number(slot.strength).toFixed(2));
         weightWrap.title = "按住左右拖拽微调，双击直接输入";
@@ -697,7 +811,7 @@ export class LoraStackView {
             this.render({ keepScroll: true });
         });
 
-        top.append(expand, drag, number, selectWrap, weightWrap, remove);
+        top.append(expand, drag, number, selectWrap, power, weightWrap, remove);
         card.append(top, this._renderPromptSection(slot));
         card.append(this._renderCustomSection(slot));
         return card;
@@ -707,7 +821,7 @@ export class LoraStackView {
         const setValue = (value, precision = 2) => {
             const numeric = Number(value);
             if (!Number.isFinite(numeric)) return slot.strength;
-            slot.strength = clamp(numeric, -100, 100);
+            slot.strength = clamp(numeric, 0, 100);
             valueEl.textContent = slot.strength.toFixed(precision);
             wrap.setAttribute("aria-valuenow", String(slot.strength));
             return slot.strength;
@@ -751,10 +865,13 @@ export class LoraStackView {
         input.addEventListener("keydown", (event) => {
             if (event.key === "Enter") {
                 event.preventDefault();
+                // 直接提交，不依赖 blur：无焦点窗口/headless 里 input.blur() 可能不派发 blur。
+                finishEdit();
                 input.blur();
             } else if (event.key === "Escape") {
                 event.preventDefault();
                 cancelEdit = true;
+                finishEdit();
                 input.blur();
             }
         });
@@ -956,6 +1073,9 @@ export class LoraStackView {
 
     _renderCustomSection(slot) {
         const section = element("section", "ls-custom");
+        const field = element("div", "ls-custom-field");
+        const mirror = element("div", "ls-custom-mirror");
+        mirror.setAttribute("aria-hidden", "true");
         const textarea = element("textarea", "ls-custom-input");
         textarea.value = slot.custom;
         textarea.rows = 1;
@@ -964,6 +1084,9 @@ export class LoraStackView {
         textarea.setAttribute("aria-label", "自定义追加提示词");
         attachAutoComplete(textarea);
         textarea.addEventListener("focus", () => this.options.onEditStart?.());
+        textarea.addEventListener("scroll", () => {
+            mirror.scrollTop = textarea.scrollTop;
+        });
         textarea.addEventListener("input", () => {
             slot.custom = textarea.value;
             this._syncState(false);
@@ -972,10 +1095,15 @@ export class LoraStackView {
                 slot.id,
                 setTimeout(() => {
                     this._customTimers.delete(slot.id);
-                    const chips = this._slotElements
-                        .get(slot.id)
-                        ?.querySelector(".ls-custom-chips");
-                    if (chips) this._renderCustomChips(chips, slot);
+                    const card = this._slotElements.get(slot.id);
+                    const chips = card?.querySelector(".ls-custom-chips");
+                    if (chips) {
+                        this._renderCustomChips(
+                            chips,
+                            slot,
+                            card.querySelector(".ls-custom-mirror")
+                        );
+                    }
                     this._notifyLayout();
                 }, 120)
             );
@@ -986,14 +1114,35 @@ export class LoraStackView {
             this.options.onEditEnd?.();
         });
 
+        field.append(mirror, textarea);
         const chips = element("div", "ls-custom-chips");
-        this._renderCustomChips(chips, slot);
-        section.append(textarea, chips);
+        this._renderCustomChips(chips, slot, mirror);
+        section.append(field, chips);
         return section;
     }
 
-    _renderCustomChips(container, slot) {
+    // 关掉的词要连输入框里的文字一起变灰：textarea 给局部文字上不了色，
+    // 所以文字画在背后的镜像层，textarea 自身文字透明、只留光标与选中。
+    _renderCustomMirror(mirror, slot) {
+        const disabled = readDisabled(slot, "custom");
+        const nodes = [];
+        for (const segment of splitCustomSegments(slot.custom)) {
+            if (!segment.raw && !segment.sep) continue;
+            const span = element("span", "", segment.raw);
+            if (segment.token && disabled.has(segment.token)) {
+                span.classList.add("is-off");
+            }
+            nodes.push(span);
+            if (segment.sep) nodes.push(document.createTextNode(segment.sep));
+        }
+        mirror.replaceChildren(...nodes);
+        const textarea = mirror.parentElement?.querySelector(".ls-custom-input");
+        if (textarea) mirror.scrollTop = textarea.scrollTop;
+    }
+
+    _renderCustomChips(container, slot, mirror) {
         container.replaceChildren();
+        if (mirror) this._renderCustomMirror(mirror, slot);
         const tokens = splitCustomPrompts(slot.custom);
         if (!tokens.length) {
             return;
@@ -1011,6 +1160,7 @@ export class LoraStackView {
                 else current.add(token);
                 writeDisabled(slot, "custom", current);
                 markChip(button, !current.has(token));
+                if (mirror) this._renderCustomMirror(mirror, slot);
                 this._syncState(true);
             });
             container.append(button);
@@ -1074,7 +1224,13 @@ export class LoraStackView {
             if (name) name.textContent = slot.lora || "选择 LoRA";
         }
         const customChips = card.querySelector(".ls-custom-chips");
-        if (customChips) this._renderCustomChips(customChips, slot);
+        if (customChips) {
+            this._renderCustomChips(
+                customChips,
+                slot,
+                card.querySelector(".ls-custom-mirror")
+            );
+        }
         this._refreshPromptSection(slot);
     }
 
@@ -1157,6 +1313,10 @@ export class LoraStackView {
         if (this._disposed || !this.root.isConnected) return;
         if (event.__lsForwarded) return;
         if (event.deltaY === 0 && event.deltaX === 0) return;
+        // 弹层浮在面板矩形之上，但不在面板 DOM 内：按矩形判定会误抢，交给弹层自己滚列表。
+        if (picker?.root.contains(event.target) || picker?.preview.contains(event.target)) {
+            return;
+        }
         const x = event.clientX;
         const y = event.clientY;
         // 只在指针位于面板内时接管/转发；面板外一律放行，避免画布缩放被重复触发。

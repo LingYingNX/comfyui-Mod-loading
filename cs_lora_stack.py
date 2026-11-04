@@ -78,8 +78,8 @@ def split_prompt_tokens(text: Any) -> list[str]:
 
 
 def split_custom_prompts(text: Any) -> list[str]:
-    """A custom prompt is one non-empty line, so commas inside it stay intact."""
-    return [line.strip() for line in str(text or "").splitlines() if line.strip()]
+    """自定义追加词与提示词套装同一切法：顶层逗号与换行都算分隔，括号内的逗号保持完整。"""
+    return split_prompt_tokens(str(text or "").replace("\n", ","))
 
 
 def _prompt_content(item: Any) -> str:
@@ -193,13 +193,13 @@ def parse_stack_state(state_json: Any) -> list[dict[str, Any]]:
             strength = float(raw.get("strength", 1.0))
         except (TypeError, ValueError):
             strength = 1.0
-        strength = max(-100.0, min(100.0, strength))
+        strength = max(0.0, min(100.0, strength))
 
         try:
             strength_clip = float(raw.get("strength_clip", strength))
         except (TypeError, ValueError):
             strength_clip = strength
-        strength_clip = max(-100.0, min(100.0, strength_clip))
+        strength_clip = max(0.0, min(100.0, strength_clip))
 
         raw_disabled = raw.get("disabled")
         disabled: dict[str, list[str]] = {}
@@ -217,6 +217,7 @@ def parse_stack_state(state_json: Any) -> list[dict[str, Any]]:
                 "set": str(raw.get("set") or "").strip(),
                 "disabled": disabled,
                 "custom": str(raw.get("custom") or ""),
+                "enabled": raw.get("enabled", True) is not False,
             }
         )
     return slots
@@ -227,6 +228,8 @@ def build_prompt_text(slots: list[dict[str, Any]]) -> str:
     set_cache: dict[str, list[dict[str, Any]]] = {}
 
     for slot in slots:
+        if not slot["enabled"]:
+            continue
         lora_name = slot["lora"]
         if lora_name not in set_cache:
             set_cache[lora_name] = normalize_prompt_sets(lora_name)
@@ -312,6 +315,8 @@ class AIGODLIKELoraPromptStack:
         prompt_text = build_prompt_text(slots)
 
         for slot in slots:
+            if not slot["enabled"]:
+                continue
             lora_name = slot["lora"]
             strength = slot["strength"]
             if not lora_name or strength == 0:
@@ -354,6 +359,39 @@ async def lora_stack_prompts(request: web.Request):
         return web.Response(
             status=200,
             text=json.dumps(response, ensure_ascii=False),
+            content_type="application/json",
+        )
+
+
+PLUGIN_REV = "2026-11-04.3"
+
+
+@server.PromptServer.instance.routes.post("/cs/lora_stack/inspect")
+async def lora_stack_inspect(request: web.Request):
+    """只读诊断：用运行中的模块合成一次提示词，证明 enabled 到底有没有被认。"""
+    try:
+        body = json.loads(await request.read() or b"{}")
+        state = body.get("state") if isinstance(body, dict) else None
+        payload = state if isinstance(state, str) else json.dumps(state or {})
+        slots = parse_stack_state(payload)
+        response = {
+            "status": True,
+            "rev": PLUGIN_REV,
+            "prompt": build_prompt_text(slots),
+            "slots": [
+                {"id": slot["id"], "lora": slot["lora"], "enabled": slot["enabled"]}
+                for slot in slots
+            ],
+        }
+        return web.Response(
+            status=200,
+            text=json.dumps(response, ensure_ascii=False),
+            content_type="application/json",
+        )
+    except Exception as exc:
+        return web.Response(
+            status=200,
+            text=json.dumps({"status": False, "message": str(exc)}, ensure_ascii=False),
             content_type="application/json",
         )
 

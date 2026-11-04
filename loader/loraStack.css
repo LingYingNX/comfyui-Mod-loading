@@ -150,15 +150,6 @@
   white-space: nowrap;
 }
 
-.ls-head-hint {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ls-tx-3);
-  font-size: 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .ls-list {
   flex: 1 1 auto;
   min-height: 0;
@@ -330,6 +321,50 @@
   stroke-linejoin: round;
 }
 
+.ls-power {
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--ls-tx-3);
+  background: transparent;
+  border: 1px solid var(--ls-line);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    color 100ms ease,
+    background-color 100ms ease,
+    border-color 100ms ease;
+}
+
+.ls-power:hover {
+  color: var(--ls-tx);
+  border-color: var(--ls-line-2);
+}
+
+.ls-power[aria-pressed="true"] {
+  color: var(--ls-blue-text);
+  background: var(--ls-blue-glow);
+  border-color: color-mix(in srgb, var(--ls-blue) 28%, transparent);
+}
+
+.ls-power svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* 关掉整个 LoRA 槽：面板半透明 + 去色 */
+.ls-slot.is-off {
+  opacity: 0.45;
+  filter: saturate(0);
+}
+
 .ls-slot-index {
   flex: 0 0 16px;
   color: var(--ls-tx-3);
@@ -481,9 +516,9 @@
 .ls-picker-arrow {
   width: 0;
   height: 0;
-  border-top: 3.5px solid transparent;
-  border-bottom: 3.5px solid transparent;
-  border-left: 4px solid var(--muted-foreground, #aeb5bf);
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 6px solid var(--muted-foreground, #aeb5bf);
   transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -499,7 +534,7 @@
 
 .ls-picker-count {
   color: var(--muted-foreground, #9ca3af);
-  font-size: 10px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -549,8 +584,36 @@
   text-align: center;
 }
 
+.ls-picker-hint {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 17px;
+  padding: 1px 6px 3px;
+  color: var(--muted-foreground, #9ca3af);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
 .ls-picker-hint:empty {
   display: none;
+}
+
+.ls-hint-toggle {
+  flex: 0 0 auto;
+  padding: 0;
+  color: var(--primary-background, #4b9fff);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.ls-hint-toggle:hover {
+  text-decoration: underline;
 }
 
 .ls-picker-preview {
@@ -953,27 +1016,56 @@
   gap: 2px;
 }
 
+.ls-custom-field {
+  position: relative;
+  overflow: hidden;
+  background: var(--ls-inset);
+  border-radius: 4px;
+}
+
+.ls-custom-field:focus-within {
+  box-shadow: 0 0 0 2px var(--ls-blue-glow);
+}
+
+/* 文字画在镜像层：textarea 只负责编辑、光标与选中，这样关掉的词才能单独变灰。
+   字体这里不声明：面板给 textarea 挂的是 font: inherit，镜像跟着同一条继承链走才对得上光标。 */
+.ls-custom-mirror {
+  position: absolute;
+  inset: 0;
+  padding: 3px 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: var(--ls-tx);
+  overflow-wrap: break-word;
+  pointer-events: none;
+  scrollbar-width: thin;
+  white-space: pre-wrap;
+}
+
+.ls-custom-mirror .is-off {
+  color: var(--ls-tx-3);
+}
+
 .ls-custom-input {
+  position: relative;
+  display: block;
   width: 100%;
   min-height: 24px;
   max-height: 64px;
   padding: 3px 4px;
   resize: vertical;
-  color: var(--ls-tx);
-  background: var(--ls-inset);
+  color: transparent;
+  caret-color: var(--ls-tx);
+  background: transparent;
   border: 0;
   border-radius: 4px;
   outline: none;
   font: 10px/1.35 "Cascadia Mono", "Microsoft YaHei", Consolas, monospace;
+  scrollbar-width: thin;
 }
 
 .ls-custom-input::placeholder {
   color: var(--ls-tx-3);
-}
-
-.ls-custom-input:focus {
-  border-color: var(--ls-blue);
-  box-shadow: 0 0 0 2px var(--ls-blue-glow);
 }
 
 /* 上游 pysssss 只给键盘选中项样式，没有鼠标 hover；只补我们挂的这份下拉。 */
@@ -1058,10 +1150,6 @@
 }
 
 @media (max-width: 620px) {
-  .ls-head-hint {
-    display: none;
-  }
-
   .ls-select-wrap {
     flex-basis: 120px;
   }
